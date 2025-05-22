@@ -174,21 +174,41 @@ const BowlingScoreCalculator = () => {
         setCurrentBall(1);
       } else if (currentBall === 1) {
         // Second ball in 10th frame
-        if (frame.balls[0] !== 10 && (frame.balls[0] || 0) + pins > 10) return;
-        frame.balls[1] = pins;
-        
-        // Check if we need a third ball
-        if (frame.balls[0] === 10 || (frame.balls[0] || 0) + pins === 10) {
-          setCurrentBall(2);
-        } else {
-          // Game complete
-          setCurrentBall(3);
+        // If first ball was a strike, no restrictions on second ball
+        if (frame.balls[0] === 10) {
+          if (pins > 10) return; // Can't exceed 10 pins on any single throw
+          frame.balls[1] = pins;
+          setCurrentBall(2); // Always need a third ball after a strike in 10th frame
+        } 
+        // If first ball wasn't a strike, normal spare/open logic applies
+        else {
+          if ((frame.balls[0] || 0) + pins > 10) return; // Total can't exceed 10
+          frame.balls[1] = pins;
+          
+          // Check if we need a third ball (only if we made a spare)
+          if ((frame.balls[0] || 0) + pins === 10) {
+            setCurrentBall(2);
+          } else {
+            // No spare, game complete
+            setCurrentBall(3);
+          }
         }
       } else if (currentBall === 2) {
         // Third ball in 10th frame
-        if (frame.balls[1] !== 10 && frame.balls[0] !== 10 && 
-            (frame.balls[1] || 0) + pins > 10) return;
-        frame.balls[2] = pins;
+        // If first ball was a strike, no restrictions on third ball
+        if (frame.balls[0] === 10) {
+          if (pins > 10) return; // Can't exceed 10 pins on any single throw
+          frame.balls[2] = pins;
+        }
+        // If first ball wasn't a strike but we have a spare, no restrictions on third ball
+        else if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
+          if (pins > 10) return; // Can't exceed 10 pins on any single throw
+          frame.balls[2] = pins;
+        }
+        // This case shouldn't happen if logic is correct, but adding safety
+        else {
+          return; // No third ball allowed if no strike or spare
+        }
         setCurrentBall(3); // Game complete
       }
     }
@@ -246,10 +266,15 @@ const BowlingScoreCalculator = () => {
       }
     } else {
       // 10th frame
-      if (currentBall === 1 && frames[9].balls[0] !== 10) {
+      if (currentBall === 1 && frames[9].balls[0] === 10) {
+        // Second ball after a strike in 10th frame - no restrictions
+        maxPins = 10;
+      } else if (currentBall === 1 && frames[9].balls[0] !== 10) {
+        // Second ball after non-strike in 10th frame - normal spare logic
         maxPins = 10 - (frames[9].balls[0] || 0);
-      } else if (currentBall === 2 && frames[9].balls[1] !== 10 && frames[9].balls[0] !== 10) {
-        maxPins = 10 - (frames[9].balls[1] || 0);
+      } else if (currentBall === 2) {
+        // Third ball in 10th frame - no restrictions (can knock down up to 10 pins)
+        maxPins = 10;
       }
     }
     
@@ -513,8 +538,27 @@ const BowlingScoreCalculator = () => {
                 <button
                   key={index}
                   onClick={button.props.onClick}
-                  style={styles.pinButton}
-                  className="hover:bg-green-600 active:scale-95"
+                  style={{
+                    ...styles.pinButton,
+                    ':hover': {
+                      background: '#45a049',
+                      transform: 'scale(1.1)'
+                    }
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#45a049';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#4CAF50';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = 'scale(0.95)';
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
                 >
                   {button.props.children}
                 </button>
@@ -526,7 +570,12 @@ const BowlingScoreCalculator = () => {
         <button 
           onClick={resetGame} 
           style={styles.resetButton}
-          className="hover:bg-red-700"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#d32f2f';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f44336';
+          }}
         >
           New Game
         </button>
