@@ -1,322 +1,581 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import BowlingFrame from './BowlingFrame';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from 'react';
 
-interface Roll {
-  pins: number | null;
-  isStrike?: boolean;
-  isSpare?: boolean;
-}
-
-interface Frame {
-  rolls: Roll[];
-  score: number | null;
-  frameNumber: number;
-}
-
-const BowlingScorecard = () => {
-  const [frames, setFrames] = useState<Frame[]>(
-    Array.from({ length: 10 }, (_, i) => ({
-      rolls: [],
-      score: null,
-      frameNumber: i + 1,
-    }))
-  );
+const BowlingScoreCalculator = () => {
+  // Initialize game state
+  const [frames, setFrames] = useState(() => {
+    const initialFrames = [];
+    for (let i = 0; i < 10; i++) {
+      if (i === 9) { // 10th frame
+        initialFrames.push({ balls: [null, null, null], score: null });
+      } else {
+        initialFrames.push({ balls: [null, null], score: null });
+      }
+    }
+    return initialFrames;
+  });
 
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [selectedFrame, setSelectedFrame] = useState<number | null>(null);
+  const [currentBall, setCurrentBall] = useState(0);
+  const [totalScore, setTotalScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
 
-  const calculateScore = (updatedFrames: Frame[]) => {
-    const newFrames = [...updatedFrames];
-    let runningScore = 0;
+  // Calculate scores whenever frames change
+  useEffect(() => {
+    calculateScores();
+  }, [frames]);
+
+  const isStrike = (frameIndex) => {
+    return frames[frameIndex].balls[0] === 10;
+  };
+
+  const isSpare = (frameIndex) => {
+    if (frameIndex === 9) return false; // 10th frame spares handled differently
+    return !isStrike(frameIndex) && 
+           frames[frameIndex].balls[0] + frames[frameIndex].balls[1] === 10;
+  };
+
+  const getNextTwoBalls = (frameIndex) => {
+    if (frameIndex >= 9) return [0, 0]; // No next balls after 10th frame
+    
+    const nextFrame = frames[frameIndex + 1];
+    if (isStrike(frameIndex + 1)) {
+      // Next frame is a strike
+      if (frameIndex + 1 === 9) {
+        // Next frame is 10th frame
+        return [nextFrame.balls[0] || 0, nextFrame.balls[1] || 0];
+      } else {
+        // Look at frame after next
+        const frameAfterNext = frames[frameIndex + 2];
+        return [nextFrame.balls[0] || 0, frameAfterNext?.balls[0] || 0];
+      }
+    } else {
+      // Next frame is not a strike
+      return [nextFrame.balls[0] || 0, nextFrame.balls[1] || 0];
+    }
+  };
+
+  const getNextBall = (frameIndex) => {
+    if (frameIndex >= 9) return 0; // No next ball after 10th frame
+    const nextFrame = frames[frameIndex + 1];
+    return nextFrame.balls[0] || 0;
+  };
+
+  const calculateFrameScore = (frameIndex) => {
+    const frame = frames[frameIndex];
+    
+    if (frameIndex === 9) {
+      // 10th frame scoring
+      let total = 0;
+      for (let i = 0; i < 3; i++) {
+        if (frame.balls[i] !== null) {
+          total += frame.balls[i];
+        }
+      }
+      return total;
+    }
+
+    // Regular frames (1-9)
+    if (isStrike(frameIndex)) {
+      const [next1, next2] = getNextTwoBalls(frameIndex);
+      return 10 + next1 + next2;
+    } else if (isSpare(frameIndex)) {
+      const nextBall = getNextBall(frameIndex);
+      return 10 + nextBall;
+    } else {
+      return (frame.balls[0] || 0) + (frame.balls[1] || 0);
+    }
+  };
+
+  const calculateScores = () => {
+    const newFrames = [...frames];
+    let runningTotal = 0;
+    let allFramesComplete = true;
 
     for (let i = 0; i < 10; i++) {
       const frame = newFrames[i];
       
-      if (frame.rolls.length === 0) {
-        newFrames[i].score = null;
-        continue;
-      }
-
-      if (i < 9) {
-        // Frames 1-9
-        if (frame.rolls[0]?.pins === 10) {
-          // Strike
-          frame.rolls[0].isStrike = true;
-          let bonus = 0;
-          
-          if (newFrames[i + 1]?.rolls[0]?.pins !== undefined) {
-            bonus += newFrames[i + 1].rolls[0].pins || 0;
-            
-            if (newFrames[i + 1].rolls[0].pins === 10 && i < 8) {
-              // Strike in next frame, look at frame after that
-              bonus += newFrames[i + 2]?.rolls[0]?.pins || 0;
-            } else if (newFrames[i + 1]?.rolls[1]?.pins !== undefined) {
-              bonus += newFrames[i + 1].rolls[1].pins || 0;
-            }
-          }
-          
-          if (bonus > 0 || i === 9) {
-            runningScore += 10 + bonus;
-            newFrames[i].score = runningScore;
-          }
-        } else if (frame.rolls.length === 2) {
-          const frameTotal = (frame.rolls[0]?.pins || 0) + (frame.rolls[1]?.pins || 0);
-          
-          if (frameTotal === 10) {
-            // Spare
-            frame.rolls[1].isSpare = true;
-            const bonus = newFrames[i + 1]?.rolls[0]?.pins || 0;
-            
-            if (bonus > 0 || i === 9) {
-              runningScore += 10 + bonus;
-              newFrames[i].score = runningScore;
-            }
-          } else {
-            // Regular frame
-            runningScore += frameTotal;
-            newFrames[i].score = runningScore;
-          }
+      // Check if frame is complete enough to score
+      let canScore = false;
+      
+      if (i === 9) {
+        // 10th frame: need all applicable balls
+        if (frame.balls[0] === 10) {
+          canScore = frame.balls[1] !== null && frame.balls[2] !== null;
+        } else if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
+          canScore = frame.balls[2] !== null;
+        } else {
+          canScore = frame.balls[1] !== null;
         }
       } else {
-        // 10th frame
-        for (let j = 0; j < frame.rolls.length; j++) {
-          if (j === 0 && frame.rolls[j].pins === 10) {
-            frame.rolls[j].isStrike = true;
-          } else if (j === 1 && frame.rolls[j].pins === 10) {
-            frame.rolls[j].isStrike = true;
-          } else if (j === 1 && (frame.rolls[0].pins || 0) + frame.rolls[j].pins === 10) {
-            frame.rolls[j].isSpare = true;
-          } else if (j === 2 && frame.rolls[1].pins === 10 && frame.rolls[j].pins === 10) {
-            frame.rolls[j].isStrike = true;
-          } else if (j === 2 && (frame.rolls[1].pins || 0) + frame.rolls[j].pins === 10) {
-            frame.rolls[j].isSpare = true;
+        // Regular frames
+        if (isStrike(i)) {
+          // Need next two balls to score
+          const [next1, next2] = getNextTwoBalls(i);
+          canScore = next1 !== 0 || next2 !== 0 || i >= 8; // Can score if we have next balls or it's frame 9
+        } else if (frame.balls[1] !== null) {
+          if (isSpare(i)) {
+            // Need next ball to score
+            const nextBall = getNextBall(i);
+            canScore = nextBall !== 0 || i >= 8; // Can score if we have next ball or it's frame 9
+          } else {
+            // Open frame, can score immediately
+            canScore = true;
           }
         }
-        
-        // Calculate total for 10th frame
-        const totalPins = frame.rolls.reduce((sum, roll) => sum + (roll.pins || 0), 0);
-        runningScore += totalPins;
-        newFrames[i].score = runningScore;
+      }
+
+      if (canScore) {
+        const frameScore = calculateFrameScore(i);
+        runningTotal += frameScore;
+        newFrames[i].score = runningTotal;
+      } else {
+        newFrames[i].score = null;
+        allFramesComplete = false;
       }
     }
 
-    return newFrames;
+    setFrames(newFrames);
+    setTotalScore(runningTotal);
+    setGameComplete(allFramesComplete && newFrames[9].score !== null);
   };
 
-  const addRoll = (frameIndex: number, pins: number) => {
+  const enterPins = (pins) => {
     const newFrames = [...frames];
-    const frame = newFrames[frameIndex];
-
-    // If editing a frame, reset its rolls
-    if (selectedFrame !== null && selectedFrame === frameIndex) {
-      frame.rolls = [];
-      
-      // Also reset scores for all frames from this point forward
-      for (let i = frameIndex; i < 10; i++) {
-        newFrames[i].score = null;
+    const frame = newFrames[currentFrame];
+    
+    // Validate input
+    if (currentFrame < 9) {
+      // Regular frames (1-9)
+      if (currentBall === 0) {
+        if (pins > 10) return; // Can't knock down more than 10 pins
+        frame.balls[0] = pins;
         
-        // If not the selected frame, also reset the rolls
-        if (i > frameIndex) {
-          newFrames[i].rolls = [];
-        }
-      }
-    }
-
-    if (frameIndex < 9) {
-      // Frames 1-9
-      if (frame.rolls.length === 0) {
-        // First roll in the frame
-        frame.rolls.push({ pins });
         if (pins === 10) {
-          // Strike - move to next frame automatically if not in edit mode
-          frame.rolls[0].isStrike = true;
-          if (selectedFrame === null) {
-            setCurrentFrame(Math.min(frameIndex + 1, 9));
-          } else {
-            setSelectedFrame(null);
-            setCurrentFrame(Math.max(currentFrame, frameIndex + 1));
-          }
-        }
-      } else if (frame.rolls.length === 1) {
-        // Second roll in the frame
-        if (pins + (frame.rolls[0].pins || 0) <= 10) {
-          // Check if it's a spare
-          if (pins + (frame.rolls[0].pins || 0) === 10) {
-            frame.rolls.push({ pins, isSpare: true });
-          } else {
-            frame.rolls.push({ pins });
-          }
-          
-          // Move to next frame automatically if not in edit mode
-          if (selectedFrame === null) {
-            setCurrentFrame(Math.min(frameIndex + 1, 9));
-          } else {
-            setSelectedFrame(null);
-            setCurrentFrame(Math.max(currentFrame, frameIndex + 1));
-          }
+          // Strike - move to next frame
+          setCurrentFrame(currentFrame + 1);
+          setCurrentBall(0);
         } else {
-          toast.error("Invalid pin count for this roll");
-          return;
+          // Move to second ball
+          setCurrentBall(1);
         }
+      } else if (currentBall === 1) {
+        if ((frame.balls[0] || 0) + pins > 10) return; // Total can't exceed 10
+        frame.balls[1] = pins;
+        
+        // Move to next frame
+        setCurrentFrame(currentFrame + 1);
+        setCurrentBall(0);
       }
     } else {
       // 10th frame
-      if (frame.rolls.length === 0) {
-        // First roll in 10th frame
-        if (pins === 10) {
-          frame.rolls.push({ pins, isStrike: true });
-        } else {
-          frame.rolls.push({ pins });
-        }
-        
-        if (selectedFrame !== null) {
-          // If we're editing, don't deselect the frame yet
-          // as we need to complete the editing
-        }
-      } else if (frame.rolls.length === 1) {
-        // Second roll in 10th frame
-        const firstRoll = frame.rolls[0].pins || 0;
-        
-        if ((firstRoll < 10 && pins > (10 - firstRoll)) && !frame.rolls[0].isStrike) {
-          // Invalid roll - more pins than remaining (unless first was a strike)
-          toast.error("Invalid pin count for this roll");
-          return;
-        }
-        
-        if (firstRoll === 10 && pins === 10) {
-          // Second strike in 10th frame
-          frame.rolls.push({ pins, isStrike: true });
-        } else if ((firstRoll < 10 && firstRoll + pins === 10) || (firstRoll === 10 && pins < 10)) {
-          // Spare in 10th frame
-          frame.rolls.push({ pins, isSpare: (firstRoll < 10) });
-        } else {
-          frame.rolls.push({ pins });
-        }
-        
-        // If not a strike or spare in the first two rolls, game is complete
-        if (firstRoll !== 10 && firstRoll + pins < 10) {
-          if (selectedFrame === null) {
-            setGameComplete(true);
-          } else {
-            setSelectedFrame(null);
-          }
-        }
-      } else if (frame.rolls.length === 2) {
-        // Third roll in 10th frame
-        const firstRoll = frame.rolls[0].pins || 0;
-        const secondRoll = frame.rolls[1].pins || 0;
-        
-        // Only allow third roll if strike or spare in the first two rolls
-        if (firstRoll === 10 || firstRoll + secondRoll === 10) {
-          // Check third roll pin count validity
-          if (firstRoll === 10 && secondRoll === 10 && pins === 10) {
-            // Third strike
-            frame.rolls.push({ pins, isStrike: true });
-          } else if (secondRoll === 10 && pins === 10) {
-            // Strike after spare or strike
-            frame.rolls.push({ pins, isStrike: true });
-          } else if (secondRoll < 10 && secondRoll + pins === 10 && firstRoll === 10) {
-            // Spare after strike
-            frame.rolls.push({ pins, isSpare: true });
-          } else {
-            frame.rolls.push({ pins });
-          }
+      if (currentBall === 0) {
+        if (pins > 10) return;
+        frame.balls[0] = pins;
+        setCurrentBall(1);
+      } else if (currentBall === 1) {
+        // Second ball in 10th frame
+        // If first ball was a strike, no restrictions on second ball
+        if (frame.balls[0] === 10) {
+          if (pins > 10) return; // Can't exceed 10 pins on any single throw
+          frame.balls[1] = pins;
+          setCurrentBall(2); // Always need a third ball after a strike in 10th frame
+        } 
+        // If first ball wasn't a strike, normal spare/open logic applies
+        else {
+          if ((frame.balls[0] || 0) + pins > 10) return; // Total can't exceed 10
+          frame.balls[1] = pins;
           
-          if (selectedFrame === null) {
-            setGameComplete(true);
+          // Check if we need a third ball (only if we made a spare)
+          if ((frame.balls[0] || 0) + pins === 10) {
+            setCurrentBall(2);
           } else {
-            setSelectedFrame(null);
+            // No spare, game complete
+            setCurrentBall(3);
           }
-        } else {
-          toast.error("Invalid roll: no third roll allowed without strike or spare");
-          return;
         }
+      } else if (currentBall === 2) {
+        // Third ball in 10th frame
+        // If first ball was a strike, no restrictions on third ball
+        if (frame.balls[0] === 10) {
+          if (pins > 10) return; // Can't exceed 10 pins on any single throw
+          frame.balls[2] = pins;
+        }
+        // If first ball wasn't a strike but we have a spare, no restrictions on third ball
+        else if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
+          if (pins > 10) return; // Can't exceed 10 pins on any single throw
+          frame.balls[2] = pins;
+        }
+        // This case shouldn't happen if logic is correct, but adding safety
+        else {
+          return; // No third ball allowed if no strike or spare
+        }
+        setCurrentBall(3); // Game complete
       }
     }
-
-    const updatedFrames = calculateScore(newFrames);
-    setFrames(updatedFrames);
-  };
-
-  const handleFrameSelect = (frameIndex: number) => {
-    // Can't select upcoming frames that haven't been reached yet
-    if (frameIndex > currentFrame && frames[frameIndex].rolls.length === 0) {
-      toast.error("You need to fill frames in order");
-      return;
-    }
     
-    // If a frame is already selected and not completed, don't allow selecting another
-    if (selectedFrame !== null && selectedFrame !== frameIndex && frames[selectedFrame].rolls.length < 
-        (selectedFrame < 9 ? (frames[selectedFrame].rolls[0]?.pins === 10 ? 1 : 2) : 
-          (frames[selectedFrame].rolls[0]?.pins === 10 || 
-            (frames[selectedFrame].rolls[0]?.pins || 0) + (frames[selectedFrame].rolls[1]?.pins || 0) === 10 ? 3 : 2))) {
-      toast.error("Please complete the current frame before selecting another");
-      return;
-    }
-    
-    // Already active or completed frames can be selected for editing
-    if (frames[frameIndex].rolls.length > 0 || frameIndex === currentFrame) {
-      // If already selected, deselect it
-      if (selectedFrame === frameIndex) {
-        setSelectedFrame(null);
-      } else {
-        setSelectedFrame(frameIndex);
-      }
-    }
+    setFrames(newFrames);
   };
 
   const resetGame = () => {
-    setFrames(Array.from({ length: 10 }, (_, i) => ({
-      rolls: [],
-      score: null,
-      frameNumber: i + 1,
-    })));
+    const initialFrames = [];
+    for (let i = 0; i < 10; i++) {
+      if (i === 9) {
+        initialFrames.push({ balls: [null, null, null], score: null });
+      } else {
+        initialFrames.push({ balls: [null, null], score: null });
+      }
+    }
+    setFrames(initialFrames);
     setCurrentFrame(0);
-    setSelectedFrame(null);
+    setCurrentBall(0);
+    setTotalScore(0);
     setGameComplete(false);
   };
 
-  const finalScore = frames[9]?.score || 0;
-  const isNewGame = frames.every(frame => frame.rolls.length === 0);
+  const formatBall = (ball, frameIndex, ballIndex) => {
+    if (ball === null) return '';
+    if (ball === 0) return '-';
+    if (ball === 10) {
+      if (frameIndex === 9 || ballIndex === 0) return 'X';
+      return 'X';
+    }
+    
+    // Check for spare
+    if (frameIndex < 9 && ballIndex === 1) {
+      const frame = frames[frameIndex];
+      if ((frame.balls[0] || 0) + ball === 10) return '/';
+    } else if (frameIndex === 9 && ballIndex === 1 && frames[9].balls[0] !== 10) {
+      if ((frames[9].balls[0] || 0) + ball === 10) return '/';
+    } else if (frameIndex === 9 && ballIndex === 2 && frames[9].balls[1] !== 10) {
+      if ((frames[9].balls[1] || 0) + ball === 10) return '/';
+    }
+    
+    return ball.toString();
+  };
+
+  const getPinButtons = () => {
+    if (currentFrame >= 10 || currentBall >= 3) return [];
+    
+    const buttons = [];
+    let maxPins = 10;
+    
+    if (currentFrame < 9) {
+      // Regular frames
+      if (currentBall === 1) {
+        maxPins = 10 - (frames[currentFrame].balls[0] || 0);
+      }
+    } else {
+      // 10th frame
+      if (currentBall === 1 && frames[9].balls[0] === 10) {
+        // Second ball after a strike in 10th frame - no restrictions
+        maxPins = 10;
+      } else if (currentBall === 1 && frames[9].balls[0] !== 10) {
+        // Second ball after non-strike in 10th frame - normal spare logic
+        maxPins = 10 - (frames[9].balls[0] || 0);
+      } else if (currentBall === 2) {
+        // Third ball in 10th frame - no restrictions (can knock down up to 10 pins)
+        maxPins = 10;
+      }
+    }
+    
+    for (let i = 0; i <= maxPins; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => enterPins(i)}
+          className="pin-button"
+        >
+          {i}
+        </button>
+      );
+    }
+    
+    return buttons;
+  };
+
+  const styles = {
+    bowlingCalculator: {
+      maxWidth: '1000px',
+      margin: '0 auto',
+      padding: '20px',
+      fontFamily: 'Arial, sans-serif',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: '100vh'
+    },
+    header: {
+      textAlign: 'center' as const,
+      color: 'white',
+      marginBottom: '30px'
+    },
+    headerTitle: {
+      fontSize: '2.5em',
+      marginBottom: '10px',
+      margin: '0 0 10px 0'
+    },
+    scorecard: {
+      background: 'white',
+      borderRadius: '15px',
+      padding: '20px',
+      marginBottom: '20px',
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)'
+    },
+    framesContainer: {
+      display: 'flex',
+      gap: '2px',
+      marginBottom: '20px'
+    },
+    frame: {
+      flex: 1,
+      border: '2px solid #333',
+      background: 'white',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    frameCurrent: {
+      flex: 1,
+      border: '2px solid #4CAF50',
+      background: '#f0f8f0',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    tenthFrame: {
+      flex: 1.5,
+      border: '2px solid #333',
+      background: 'white',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    tenthFrameCurrent: {
+      flex: 1.5,
+      border: '2px solid #4CAF50',
+      background: '#f0f8f0',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    frameNumber: {
+      position: 'absolute' as const,
+      top: '2px',
+      left: '4px',
+      fontSize: '12px',
+      fontWeight: 'bold'
+    },
+    ballsRow: {
+      display: 'flex',
+      height: '40px',
+      marginTop: '15px'
+    },
+    ballsRowTenth: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      height: '40px',
+      marginTop: '15px'
+    },
+    ball: {
+      flex: 1,
+      borderRight: '1px solid #333',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 'bold',
+      fontSize: '16px'
+    },
+    ballTenth: {
+      borderRight: '1px solid #333',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 'bold',
+      fontSize: '16px'
+    },
+    scoreRow: {
+      height: '25px',
+      borderTop: '1px solid #333',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#f5f5f5',
+      fontWeight: 'bold',
+      fontSize: '14px'
+    },
+    totalScore: {
+      textAlign: 'center' as const,
+      fontSize: '2em',
+      fontWeight: 'bold',
+      color: '#333',
+      margin: '20px 0'
+    },
+    controls: {
+      background: 'rgba(255, 255, 255, 0.1)',
+      backdropFilter: 'blur(10px)',
+      borderRadius: '15px',
+      padding: '20px',
+      textAlign: 'center' as const
+    },
+    currentFrameInfo: {
+      color: 'white',
+      marginBottom: '20px',
+      fontSize: '1.2em'
+    },
+    pinButtons: {
+      display: 'flex',
+      flexWrap: 'wrap' as const,
+      gap: '10px',
+      justifyContent: 'center',
+      marginBottom: '20px'
+    },
+    pinButton: {
+      width: '50px',
+      height: '50px',
+      border: 'none',
+      borderRadius: '50%',
+      background: '#4CAF50',
+      color: 'white',
+      fontSize: '18px',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease'
+    },
+    resetButton: {
+      background: '#f44336',
+      color: 'white',
+      border: 'none',
+      padding: '15px 30px',
+      borderRadius: '25px',
+      fontSize: '16px',
+      cursor: 'pointer',
+      transition: 'background 0.3s ease'
+    },
+    gameComplete: {
+      background: '#4CAF50',
+      color: 'white',
+      padding: '20px',
+      borderRadius: '10px',
+      textAlign: 'center' as const,
+      fontSize: '1.3em',
+      marginBottom: '20px'
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center text-2xl text-blue-900">
-            Game Score: {finalScore}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-5 lg:grid-cols-10 gap-2 mb-6">
-            {frames.map((frame, index) => (
-              <BowlingFrame
-                key={index}
-                frame={frame}
-                isActive={currentFrame === index && !gameComplete && selectedFrame === null}
-                isComplete={frame.score !== null || gameComplete}
-                onRoll={(pins) => addRoll(index, pins)}
-                onSelect={() => handleFrameSelect(index)}
-                isSelected={selectedFrame === index}
-              />
-            ))}
-          </div>
-          
-          <div className="text-center">
-            <button
-              onClick={resetGame}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-            >
-              New Game
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+    <div style={styles.bowlingCalculator}>
+      
+      <div style={styles.header}>
+        <h1 style={styles.headerTitle}>🎳 Bowling Score Calculator</h1>
+        <p>Enter your pins knocked down for each ball</p>
+      </div>
+      
+      <div style={styles.scorecard}>
+        <div style={styles.framesContainer}>
+          {frames.map((frame, frameIndex) => {
+            const isCurrent = frameIndex === currentFrame;
+            const isTenth = frameIndex === 9;
+            
+            let frameStyle = styles.frame;
+            if (isTenth && isCurrent) frameStyle = styles.tenthFrameCurrent;
+            else if (isTenth) frameStyle = styles.tenthFrame;
+            else if (isCurrent) frameStyle = styles.frameCurrent;
+            
+            return (
+              <div 
+                key={frameIndex}
+                style={frameStyle}
+              >
+                <div style={styles.frameNumber}>{frameIndex + 1}</div>
+                <div style={frameIndex === 9 ? styles.ballsRowTenth : styles.ballsRow}>
+                  {frameIndex === 9 ? (
+                    // 10th frame - 3 balls
+                    <>
+                      <div style={{...styles.ballTenth, borderRight: frameIndex === 9 ? '1px solid #333' : 'none'}}>
+                        {formatBall(frame.balls[0], frameIndex, 0)}
+                      </div>
+                      <div style={{...styles.ballTenth, borderRight: frameIndex === 9 ? '1px solid #333' : 'none'}}>
+                        {formatBall(frame.balls[1], frameIndex, 1)}
+                      </div>
+                      <div style={{...styles.ballTenth, borderRight: 'none'}}>
+                        {formatBall(frame.balls[2], frameIndex, 2)}
+                      </div>
+                    </>
+                  ) : (
+                    // Regular frames - 2 balls
+                    <>
+                      <div style={styles.ball}>
+                        {formatBall(frame.balls[0], frameIndex, 0)}
+                      </div>
+                      <div style={{...styles.ball, borderRight: 'none'}}>
+                        {formatBall(frame.balls[1], frameIndex, 1)}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div style={styles.scoreRow}>
+                  {frame.score !== null ? frame.score : ''}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div style={styles.totalScore}>
+          Total Score: {totalScore}
+        </div>
+      </div>
+      
+      {gameComplete && (
+        <div style={styles.gameComplete}>
+          🎉 Game Complete! Final Score: {totalScore}
+        </div>
+      )}
+      
+      <div style={styles.controls}>
+        {!gameComplete && (
+          <>
+            <div style={styles.currentFrameInfo}>
+              Frame {currentFrame + 1}, Ball {currentBall + 1}
+            </div>
+            
+            <div style={styles.pinButtons}>
+              {getPinButtons().map((button, index) => (
+                <button
+                  key={index}
+                  onClick={button.props.onClick}
+                  style={styles.pinButton}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#45a049';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#4CAF50';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = 'scale(0.95)';
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                >
+                  {button.props.children}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        
+        <button 
+          onClick={resetGame} 
+          style={styles.resetButton}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#d32f2f';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f44336';
+          }}
+        >
+          New Game
+        </button>
+      </div>
     </div>
   );
 };
 
-export default BowlingScorecard;
+export default BowlingScoreCalculator;
