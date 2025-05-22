@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 const AuthModal = ({ isOpen, onClose }) => {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -8,33 +9,71 @@ const AuthModal = ({ isOpen, onClose }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, register } = useAuth();
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
-    if (isLoginMode) {
-      const result = login(email, password);
-      if (result.success) {
-        onClose();
-      } else {
-        setError(result.error || 'Login failed');
-      }
-    } else {
-      if (!name.trim()) {
-        setError('Name is required');
-        return;
-      }
+    try {
+      console.log(`Submitting ${isLoginMode ? 'login' : 'registration'} form`);
       
-      const result = register(name, email, password);
-      if (result.success) {
-        onClose();
+      if (isLoginMode) {
+        console.log('Attempting login with email:', email);
+        const result = await login(email, password);
+        if (result.success) {
+          console.log('Login successful, closing modal');
+          onClose();
+        } else {
+          console.error('Login failed:', result.error);
+          setError(result.error || 'Login failed');
+          toast({
+            title: "Login failed",
+            description: result.error || "Please check your credentials and try again.",
+            variant: "destructive"
+          });
+        }
       } else {
-        setError(result.error || 'Registration failed');
+        if (!name.trim()) {
+          console.error('Registration failed: Name is required');
+          setError('Name is required');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        console.log('Attempting registration with email:', email);
+        const result = await register(name, email, password);
+        if (result.success) {
+          console.log('Registration successful, closing modal');
+          onClose();
+          toast({
+            title: "Account created",
+            description: "Your account has been created successfully. Please check your email for verification.",
+          });
+        } else {
+          console.error('Registration failed:', result.error);
+          setError(result.error || 'Registration failed');
+          toast({
+            title: "Registration failed",
+            description: result.error || "Please check your information and try again.",
+            variant: "destructive"
+          });
+        }
       }
+    } catch (err) {
+      console.error('Unexpected error during authentication:', err);
+      setError(err.message || 'An unexpected error occurred');
+      toast({
+        title: "Authentication error",
+        description: err.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,6 +214,7 @@ const AuthModal = ({ isOpen, onClose }) => {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
                 required
+                disabled={isSubmitting}
               />
             </div>
           )}
@@ -188,6 +228,7 @@ const AuthModal = ({ isOpen, onClose }) => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@example.com"
               required
+              disabled={isSubmitting}
             />
           </div>
           
@@ -200,15 +241,24 @@ const AuthModal = ({ isOpen, onClose }) => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              disabled={isSubmitting}
+              minLength={6}
             />
           </div>
           
           <div style={modalStyles.buttonContainer}>
             <button 
               type="submit" 
-              style={modalStyles.submitButton}
+              style={{
+                ...modalStyles.submitButton,
+                opacity: isSubmitting ? 0.7 : 1,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer'
+              }}
+              disabled={isSubmitting}
             >
-              {isLoginMode ? 'Sign In' : 'Create Account'}
+              {isSubmitting 
+                ? (isLoginMode ? 'Signing In...' : 'Creating Account...') 
+                : (isLoginMode ? 'Sign In' : 'Create Account')}
             </button>
           </div>
         </form>
