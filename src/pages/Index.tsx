@@ -513,27 +513,8 @@ const BowlingScoreCalculator = () => {
                 <button
                   key={index}
                   onClick={button.props.onClick}
-                  style={{
-                    ...styles.pinButton,
-                    ':hover': {
-                      background: '#45a049',
-                      transform: 'scale(1.1)'
-                    }
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#45a049';
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#4CAF50';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                  onMouseDown={(e) => {
-                    e.currentTarget.style.transform = 'scale(0.95)';
-                  }}
-                  onMouseUp={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                  }}
+                  style={styles.pinButton}
+                  className="hover:bg-green-600 active:scale-95"
                 >
                   {button.props.children}
                 </button>
@@ -545,12 +526,7 @@ const BowlingScoreCalculator = () => {
         <button 
           onClick={resetGame} 
           style={styles.resetButton}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#d32f2f';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f44336';
-          }}
+          className="hover:bg-red-700"
         >
           New Game
         </button>
