@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, CSSProperties } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
+
+// Helper function to add proper type assertions for CSS properties
+const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => props as unknown as CSSProperties;
 
 const BowlingScorecard = () => {
   const { saveGames, isAuthenticated } = useAuth();
@@ -30,7 +34,7 @@ const BowlingScorecard = () => {
 
   const [activeGameId, setActiveGameId] = useState(1);
 
-  const activeGame = games.find(game => game.id === activeGameId);
+  const activeGame = games.find(game => game.id === activeGameId) || games[0];
   const frames = activeGame.frames;
   const currentFrame = activeGame.currentFrame;
   const currentBall = activeGame.currentBall;
@@ -39,7 +43,7 @@ const BowlingScorecard = () => {
   const editingFrame = activeGame.editingFrame;
   const editingBall = activeGame.editingBall;
 
-  const updateActiveGame = (updates) => {
+  const updateActiveGame = (updates: Partial<typeof activeGame>) => {
     setGames(prevGames => 
       prevGames.map(game => 
         game.id === activeGameId 
@@ -53,17 +57,17 @@ const BowlingScorecard = () => {
     calculateScoresForGame(activeGameId);
   }, [games, activeGameId]);
 
-  const isStrike = (frameIndex, gameFrames = frames) => {
+  const isStrike = (frameIndex: number, gameFrames = frames) => {
     return gameFrames[frameIndex].balls[0] === 10;
   };
 
-  const isSpare = (frameIndex, gameFrames = frames) => {
+  const isSpare = (frameIndex: number, gameFrames = frames) => {
     if (frameIndex === 9) return false;
     return !isStrike(frameIndex, gameFrames) && 
-           gameFrames[frameIndex].balls[0] + gameFrames[frameIndex].balls[1] === 10;
+           (gameFrames[frameIndex].balls[0] || 0) + (gameFrames[frameIndex].balls[1] || 0) === 10;
   };
 
-  const getNextTwoBalls = (frameIndex, gameFrames = frames) => {
+  const getNextTwoBalls = (frameIndex: number, gameFrames = frames) => {
     if (frameIndex >= 9) return [0, 0];
     
     const nextFrame = gameFrames[frameIndex + 1];
@@ -79,20 +83,20 @@ const BowlingScorecard = () => {
     }
   };
 
-  const getNextBall = (frameIndex, gameFrames = frames) => {
+  const getNextBall = (frameIndex: number, gameFrames = frames) => {
     if (frameIndex >= 9) return 0;
     const nextFrame = gameFrames[frameIndex + 1];
     return nextFrame.balls[0] || 0;
   };
 
-  const calculateFrameScore = (frameIndex, gameFrames = frames) => {
+  const calculateFrameScore = (frameIndex: number, gameFrames = frames) => {
     const frame = gameFrames[frameIndex];
     
     if (frameIndex === 9) {
       let total = 0;
       for (let i = 0; i < 3; i++) {
         if (frame.balls[i] !== null) {
-          total += frame.balls[i];
+          total += frame.balls[i] || 0;
         }
       }
       return total;
@@ -109,7 +113,7 @@ const BowlingScorecard = () => {
     }
   };
 
-  const calculateScoresForGame = (gameId) => {
+  const calculateScoresForGame = (gameId: number) => {
     const game = games.find(g => g.id === gameId);
     if (!game) return;
     
@@ -161,9 +165,9 @@ const BowlingScorecard = () => {
     });
   };
 
-  const enterPins = (pins) => {
+  const enterPins = (pins: number) => {
     const newFrames = [...frames];
-    let targetFrame, targetBall;
+    let targetFrame: number, targetBall: number;
     
     if (editingFrame !== null && editingBall !== null) {
       targetFrame = editingFrame;
@@ -352,7 +356,7 @@ const BowlingScorecard = () => {
     setActiveGameId(newGameId);
   };
 
-  const clearGame = (gameId) => {
+  const clearGame = (gameId: number) => {
     const game = games.find(g => g.id === gameId);
     if (!game) return;
     
@@ -383,7 +387,7 @@ const BowlingScorecard = () => {
     );
   };
 
-  const formatBall = (ball, frameIndex, ballIndex) => {
+  const formatBall = (ball: number | null, frameIndex: number, ballIndex: number) => {
     if (ball === null) return '';
     if (ball === 0) return '-';
     if (ball === 10) {
@@ -402,7 +406,7 @@ const BowlingScorecard = () => {
     return ball.toString();
   };
 
-  const handleBallClick = (frameIndex, ballIndex) => {
+  const handleBallClick = (frameIndex: number, ballIndex: number) => {
     if (frames[frameIndex].balls[ballIndex] === null && 
         !(frameIndex === currentFrame && ballIndex === currentBall) &&
         !gameComplete) {
@@ -443,6 +447,8 @@ const BowlingScorecard = () => {
       frame.balls.some(ball => ball !== null)
     )
   );
+
+  const getPinButtons = () => {
     const activeFrame = editingFrame !== null ? editingFrame : currentFrame;
     const activeBall = editingBall !== null ? editingBall : currentBall;
     
@@ -485,18 +491,18 @@ const BowlingScorecard = () => {
   };
 
   return (
-    <div style={{ 
+    <div style={cssProps({ 
       maxWidth: '1000px', 
       margin: '0 auto', 
       padding: '20px', 
       fontFamily: 'Arial, sans-serif',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       minHeight: '100vh'
-    }}>
+    })}>
       <Header onSaveGames={handleSaveGames} hasUnsavedGames={isAuthenticated && hasUnsavedGames} />
       
       {showSaveSuccess && (
-        <div style={{
+        <div style={cssProps({
           background: '#4CAF50',
           color: 'white',
           padding: '15px',
@@ -504,42 +510,42 @@ const BowlingScorecard = () => {
           textAlign: 'center',
           marginBottom: '20px',
           fontSize: '1.1em'
-        }}>
+        })}>
           ✅ Games saved successfully!
         </div>
       )}
       
-      <div style={{ textAlign: 'center', color: 'white', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '2.5em', marginBottom: '10px' }}>Bowling Score Calculator</h1>
+      <div style={cssProps({ textAlign: 'center', color: 'white', marginBottom: '30px' })}>
+        <h1 style={cssProps({ fontSize: '2.5em', marginBottom: '10px' })}>Bowling Score Calculator</h1>
         <p>Enter your pins knocked down for each ball</p>
       </div>
       
       {games.map((game, gameIndex) => (
-        <div key={game.id} style={{ marginBottom: '30px' }}>
-          <div style={{
+        <div key={game.id} style={cssProps({ marginBottom: '30px' })}>
+          <div style={cssProps({
             background: 'white',
             borderRadius: '15px',
             padding: '20px',
             marginBottom: '20px',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
             border: game.id === activeGameId ? '3px solid #4CAF50' : '1px solid #ddd'
-          }}>
-            <div style={{
+          })}>
+            <div style={cssProps({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: '15px'
-            }}>
-              <h2 style={{ 
+            })}>
+              <h2 style={cssProps({ 
                 margin: 0, 
                 color: '#333',
                 cursor: 'pointer'
-              }} onClick={() => setActiveGameId(game.id)}>
+              })} onClick={() => setActiveGameId(game.id)}>
                 Game {gameIndex + 1} {game.id === activeGameId ? '(Active)' : ''}
               </h2>
               <button
                 onClick={() => clearGame(game.id)}
-                style={{
+                style={cssProps({
                   background: '#dc3545',
                   color: 'white',
                   border: 'none',
@@ -547,46 +553,46 @@ const BowlingScorecard = () => {
                   borderRadius: '5px',
                   fontSize: '12px',
                   cursor: 'pointer'
-                }}
+                })}
               >
                 Clear Game
               </button>
             </div>
             
-            <div style={{ display: 'flex', gap: '2px', marginBottom: '20px' }}>
+            <div style={cssProps({ display: 'flex', gap: '2px', marginBottom: '20px' })}>
               {game.frames.map((frame, frameIndex) => (
                 <div 
                   key={frameIndex}
-                  style={{
+                  style={cssProps({
                     flex: frameIndex === 9 ? 1.5 : 1,
                     border: (game.id === activeGameId && frameIndex === game.currentFrame) ? '2px solid #4CAF50' : '2px solid #333',
                     background: (game.id === activeGameId && frameIndex === game.currentFrame) ? '#f0f8f0' : 'white',
                     minHeight: '80px',
                     position: 'relative'
-                  }}
+                  })}
                 >
-                  <div style={{
+                  <div style={cssProps({
                     position: 'absolute',
                     top: '2px',
                     left: '4px',
                     fontSize: '12px',
                     fontWeight: 'bold'
-                  }}>
+                  })}>
                     {frameIndex + 1}
                   </div>
                   
-                  <div style={{
+                  <div style={cssProps({
                     display: frameIndex === 9 ? 'grid' : 'flex',
                     gridTemplateColumns: frameIndex === 9 ? '1fr 1fr 1fr' : undefined,
                     height: '40px',
                     marginTop: '15px'
-                  }}>
+                  })}>
                     {frameIndex === 9 ? (
                       <>
                         {[0, 1, 2].map(ballIndex => (
                           <div
                             key={ballIndex}
-                            style={{
+                            style={cssProps({
                               borderRight: ballIndex < 2 ? '1px solid #333' : 'none',
                               display: 'flex',
                               alignItems: 'center',
@@ -595,7 +601,7 @@ const BowlingScorecard = () => {
                               fontSize: '16px',
                               cursor: 'pointer',
                               backgroundColor: (game.id === activeGameId && game.editingFrame === frameIndex && game.editingBall === ballIndex) ? '#fff3cd' : '#f8f9fa'
-                            }}
+                            })}
                             onClick={() => {
                               setActiveGameId(game.id);
                               handleBallClick(frameIndex, ballIndex);
@@ -610,7 +616,7 @@ const BowlingScorecard = () => {
                         {[0, 1].map(ballIndex => (
                           <div
                             key={ballIndex}
-                            style={{
+                            style={cssProps({
                               flex: 1,
                               borderRight: ballIndex === 0 ? '1px solid #333' : 'none',
                               display: 'flex',
@@ -620,7 +626,7 @@ const BowlingScorecard = () => {
                               fontSize: '16px',
                               cursor: 'pointer',
                               backgroundColor: (game.id === activeGameId && game.editingFrame === frameIndex && game.editingBall === ballIndex) ? '#fff3cd' : '#f8f9fa'
-                            }}
+                            })}
                             onClick={() => {
                               setActiveGameId(game.id);
                               handleBallClick(frameIndex, ballIndex);
@@ -633,7 +639,7 @@ const BowlingScorecard = () => {
                     )}
                   </div>
                   
-                  <div style={{
+                  <div style={cssProps({
                     height: '25px',
                     borderTop: '1px solid #333',
                     display: 'flex',
@@ -642,25 +648,25 @@ const BowlingScorecard = () => {
                     background: '#f5f5f5',
                     fontWeight: 'bold',
                     fontSize: '14px'
-                  }}>
+                  })}>
                     {frame.score !== null ? frame.score : ''}
                   </div>
                 </div>
               ))}
             </div>
             
-            <div style={{
+            <div style={cssProps({
               textAlign: 'center',
               fontSize: '2em',
               fontWeight: 'bold',
               color: '#333',
               margin: '20px 0'
-            }}>
+            })}>
               Total Score: {game.totalScore}
             </div>
             
             {game.gameComplete && (
-              <div style={{
+              <div style={cssProps({
                 background: '#4CAF50',
                 color: 'white',
                 padding: '15px',
@@ -668,7 +674,7 @@ const BowlingScorecard = () => {
                 textAlign: 'center',
                 fontSize: '1.1em',
                 marginTop: '15px'
-              }}>
+              })}>
                 🎉 Game Complete! Final Score: {game.totalScore}
               </div>
             )}
@@ -676,26 +682,26 @@ const BowlingScorecard = () => {
         </div>
       ))}
       
-      <div style={{
+      <div style={cssProps({
         background: 'rgba(255, 255, 255, 0.1)',
         backdropFilter: 'blur(10px)',
         borderRadius: '15px',
         padding: '20px',
         textAlign: 'center'
-      }}>
+      })}>
         {(!gameComplete || editingFrame !== null) && (
           <>
-            <div style={{
+            <div style={cssProps({
               color: 'white',
               marginBottom: '20px',
               fontSize: '1.2em'
-            }}>
+            })}>
               {editingFrame !== null && editingBall !== null ? (
                 <>
                   Editing Game {games.findIndex(g => g.id === activeGameId) + 1}, Frame {editingFrame + 1}, Ball {editingBall + 1}
                   <button 
                     onClick={cancelEdit}
-                    style={{
+                    style={cssProps({
                       marginLeft: '15px',
                       padding: '5px 10px',
                       background: '#6c757d',
@@ -704,7 +710,7 @@ const BowlingScorecard = () => {
                       borderRadius: '5px',
                       fontSize: '12px',
                       cursor: 'pointer'
-                    }}
+                    })}
                   >
                     Cancel Edit
                   </button>
@@ -716,17 +722,17 @@ const BowlingScorecard = () => {
               )}
             </div>
             
-            <div style={{
+            <div style={cssProps({
               display: 'flex',
               flexWrap: 'wrap',
               gap: '10px',
               justifyContent: 'center',
               marginBottom: '20px'
-            }}>
+            })}>
               {getPinButtons().map((button, index) => (
                 <div
                   key={index}
-                  style={{
+                  style={cssProps({
                     width: '50px',
                     height: '50px',
                     borderRadius: '50%',
@@ -739,7 +745,7 @@ const BowlingScorecard = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     border: 'none'
-                  }}
+                  })}
                   onClick={button.props.onClick}
                 >
                   {button.props.children}
@@ -749,11 +755,11 @@ const BowlingScorecard = () => {
           </>
         )}
         
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+        <div style={cssProps({ display: 'flex', gap: '10px', justifyContent: 'center' })}>
           {games.length < 2 && (
             <button 
               onClick={addAnotherGame}
-              style={{
+              style={cssProps({
                 background: '#28a745',
                 color: 'white',
                 border: 'none',
@@ -761,7 +767,7 @@ const BowlingScorecard = () => {
                 borderRadius: '25px',
                 fontSize: '16px',
                 cursor: 'pointer'
-              }}
+              })}
             >
               Add Another Game
             </button>
