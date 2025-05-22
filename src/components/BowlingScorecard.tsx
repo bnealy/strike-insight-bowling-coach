@@ -1,8 +1,6 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import BowlingFrame from './BowlingFrame';
-import BowlingInsights from './BowlingInsights';
 import { toast } from 'sonner';
 
 interface Roll {
@@ -317,8 +315,6 @@ const BowlingScorecard = () => {
           </div>
         </CardContent>
       </Card>
-
-      {!isNewGame && <BowlingInsights frames={frames} />}
     </div>
   );
 };
