@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import Header from './Header';
 
 const BowlingScorecard = () => {
+  const { saveGames, isAuthenticated } = useAuth();
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [games, setGames] = useState(() => [
     {
       id: 1,
@@ -422,7 +426,23 @@ const BowlingScorecard = () => {
     });
   };
 
-  const getPinButtons = () => {
+  const handleSaveGames = () => {
+    if (!isAuthenticated) return;
+    
+    const result = saveGames(games);
+    if (result.success) {
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 3000);
+    } else {
+      alert('Error saving games: ' + result.error);
+    }
+  };
+
+  const hasUnsavedGames = games.some(game => 
+    game.frames.some(frame => 
+      frame.balls.some(ball => ball !== null)
+    )
+  );
     const activeFrame = editingFrame !== null ? editingFrame : currentFrame;
     const activeBall = editingBall !== null ? editingBall : currentBall;
     
@@ -473,6 +493,22 @@ const BowlingScorecard = () => {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       minHeight: '100vh'
     }}>
+      <Header onSaveGames={handleSaveGames} hasUnsavedGames={isAuthenticated && hasUnsavedGames} />
+      
+      {showSaveSuccess && (
+        <div style={{
+          background: '#4CAF50',
+          color: 'white',
+          padding: '15px',
+          borderRadius: '10px',
+          textAlign: 'center',
+          marginBottom: '20px',
+          fontSize: '1.1em'
+        }}>
+          ✅ Games saved successfully!
+        </div>
+      )}
+      
       <div style={{ textAlign: 'center', color: 'white', marginBottom: '30px' }}>
         <h1 style={{ fontSize: '2.5em', marginBottom: '10px' }}>Bowling Score Calculator</h1>
         <p>Enter your pins knocked down for each ball</p>

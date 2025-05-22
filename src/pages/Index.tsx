@@ -1,12 +1,8 @@
-
-import BowlingScoreCalculator from '../components/BowlingScorecard';
+// src/pages/Index.tsx
+import App from '../App';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen">
-      <BowlingScoreCalculator />
-    </div>
-  );
+  return <App />;
 };
 
 export default Index;
