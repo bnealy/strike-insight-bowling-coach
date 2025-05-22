@@ -268,257 +268,290 @@ const BowlingScoreCalculator = () => {
     return buttons;
   };
 
+  const styles = {
+    bowlingCalculator: {
+      maxWidth: '1000px',
+      margin: '0 auto',
+      padding: '20px',
+      fontFamily: 'Arial, sans-serif',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: '100vh'
+    },
+    header: {
+      textAlign: 'center' as const,
+      color: 'white',
+      marginBottom: '30px'
+    },
+    headerTitle: {
+      fontSize: '2.5em',
+      marginBottom: '10px',
+      margin: '0 0 10px 0'
+    },
+    scorecard: {
+      background: 'white',
+      borderRadius: '15px',
+      padding: '20px',
+      marginBottom: '20px',
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)'
+    },
+    framesContainer: {
+      display: 'flex',
+      gap: '2px',
+      marginBottom: '20px'
+    },
+    frame: {
+      flex: 1,
+      border: '2px solid #333',
+      background: 'white',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    frameCurrent: {
+      flex: 1,
+      border: '2px solid #4CAF50',
+      background: '#f0f8f0',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    tenthFrame: {
+      flex: 1.5,
+      border: '2px solid #333',
+      background: 'white',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    tenthFrameCurrent: {
+      flex: 1.5,
+      border: '2px solid #4CAF50',
+      background: '#f0f8f0',
+      minHeight: '80px',
+      position: 'relative' as const
+    },
+    frameNumber: {
+      position: 'absolute' as const,
+      top: '2px',
+      left: '4px',
+      fontSize: '12px',
+      fontWeight: 'bold'
+    },
+    ballsRow: {
+      display: 'flex',
+      height: '40px',
+      marginTop: '15px'
+    },
+    ballsRowTenth: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      height: '40px',
+      marginTop: '15px'
+    },
+    ball: {
+      flex: 1,
+      borderRight: '1px solid #333',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 'bold',
+      fontSize: '16px'
+    },
+    ballTenth: {
+      borderRight: '1px solid #333',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 'bold',
+      fontSize: '16px'
+    },
+    scoreRow: {
+      height: '25px',
+      borderTop: '1px solid #333',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#f5f5f5',
+      fontWeight: 'bold',
+      fontSize: '14px'
+    },
+    totalScore: {
+      textAlign: 'center' as const,
+      fontSize: '2em',
+      fontWeight: 'bold',
+      color: '#333',
+      margin: '20px 0'
+    },
+    controls: {
+      background: 'rgba(255, 255, 255, 0.1)',
+      backdropFilter: 'blur(10px)',
+      borderRadius: '15px',
+      padding: '20px',
+      textAlign: 'center' as const
+    },
+    currentFrameInfo: {
+      color: 'white',
+      marginBottom: '20px',
+      fontSize: '1.2em'
+    },
+    pinButtons: {
+      display: 'flex',
+      flexWrap: 'wrap' as const,
+      gap: '10px',
+      justifyContent: 'center',
+      marginBottom: '20px'
+    },
+    pinButton: {
+      width: '50px',
+      height: '50px',
+      border: 'none',
+      borderRadius: '50%',
+      background: '#4CAF50',
+      color: 'white',
+      fontSize: '18px',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease'
+    },
+    resetButton: {
+      background: '#f44336',
+      color: 'white',
+      border: 'none',
+      padding: '15px 30px',
+      borderRadius: '25px',
+      fontSize: '16px',
+      cursor: 'pointer',
+      transition: 'background 0.3s ease'
+    },
+    gameComplete: {
+      background: '#4CAF50',
+      color: 'white',
+      padding: '20px',
+      borderRadius: '10px',
+      textAlign: 'center' as const,
+      fontSize: '1.3em',
+      marginBottom: '20px'
+    }
+  };
+
   return (
-    <div className="bowling-calculator">
-      <style jsx>{`
-        .bowling-calculator {
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 20px;
-          font-family: Arial, sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          min-height: 100vh;
-        }
-        
-        .header {
-          text-align: center;
-          color: white;
-          margin-bottom: 30px;
-        }
-        
-        .header h1 {
-          font-size: 2.5em;
-          margin-bottom: 10px;
-        }
-        
-        .scorecard {
-          background: white;
-          border-radius: 15px;
-          padding: 20px;
-          margin-bottom: 20px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        
-        .frames-container {
-          display: flex;
-          gap: 2px;
-          margin-bottom: 20px;
-        }
-        
-        .frame {
-          flex: 1;
-          border: 2px solid #333;
-          background: white;
-          min-height: 80px;
-          position: relative;
-        }
-        
-        .frame.current {
-          border-color: #4CAF50;
-          background: #f0f8f0;
-        }
-        
-        .frame-number {
-          position: absolute;
-          top: 2px;
-          left: 4px;
-          font-size: 12px;
-          font-weight: bold;
-        }
-        
-        .balls-row {
-          display: flex;
-          height: 40px;
-          margin-top: 15px;
-        }
-        
-        .ball {
-          flex: 1;
-          border-right: 1px solid #333;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          font-size: 16px;
-        }
-        
-        .ball:last-child {
-          border-right: none;
-        }
-        
-        .tenth-frame {
-          flex: 1.5;
-        }
-        
-        .tenth-frame .balls-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-        }
-        
-        .tenth-frame .ball {
-          border-right: 1px solid #333;
-        }
-        
-        .score-row {
-          height: 25px;
-          border-top: 1px solid #333;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #f5f5f5;
-          font-weight: bold;
-          font-size: 14px;
-        }
-        
-        .total-score {
-          text-align: center;
-          font-size: 2em;
-          font-weight: bold;
-          color: #333;
-          margin: 20px 0;
-        }
-        
-        .controls {
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-          border-radius: 15px;
-          padding: 20px;
-          text-align: center;
-        }
-        
-        .current-frame-info {
-          color: white;
-          margin-bottom: 20px;
-          font-size: 1.2em;
-        }
-        
-        .pin-buttons {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          justify-content: center;
-          margin-bottom: 20px;
-        }
-        
-        .pin-button {
-          width: 50px;
-          height: 50px;
-          border: none;
-          border-radius: 50%;
-          background: #4CAF50;
-          color: white;
-          font-size: 18px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        
-        .pin-button:hover {
-          background: #45a049;
-          transform: scale(1.1);
-        }
-        
-        .pin-button:active {
-          transform: scale(0.95);
-        }
-        
-        .reset-button {
-          background: #f44336;
-          color: white;
-          border: none;
-          padding: 15px 30px;
-          border-radius: 25px;
-          font-size: 16px;
-          cursor: pointer;
-          transition: background 0.3s ease;
-        }
-        
-        .reset-button:hover {
-          background: #d32f2f;
-        }
-        
-        .game-complete {
-          background: #4CAF50;
-          color: white;
-          padding: 20px;
-          border-radius: 10px;
-          text-align: center;
-          font-size: 1.3em;
-          margin-bottom: 20px;
-        }
-      `}</style>
+    <div style={styles.bowlingCalculator}>
       
-      <div className="header">
-        <h1>🎳 Bowling Score Calculator</h1>
+      <div style={styles.header}>
+        <h1 style={styles.headerTitle}>🎳 Bowling Score Calculator</h1>
         <p>Enter your pins knocked down for each ball</p>
       </div>
       
-      <div className="scorecard">
-        <div className="frames-container">
-          {frames.map((frame, frameIndex) => (
-            <div 
-              key={frameIndex}
-              className={`frame ${frameIndex === currentFrame ? 'current' : ''} ${frameIndex === 9 ? 'tenth-frame' : ''}`}
-            >
-              <div className="frame-number">{frameIndex + 1}</div>
-              <div className="balls-row">
-                {frameIndex === 9 ? (
-                  // 10th frame - 3 balls
-                  <>
-                    <div className="ball">
-                      {formatBall(frame.balls[0], frameIndex, 0)}
-                    </div>
-                    <div className="ball">
-                      {formatBall(frame.balls[1], frameIndex, 1)}
-                    </div>
-                    <div className="ball">
-                      {formatBall(frame.balls[2], frameIndex, 2)}
-                    </div>
-                  </>
-                ) : (
-                  // Regular frames - 2 balls
-                  <>
-                    <div className="ball">
-                      {formatBall(frame.balls[0], frameIndex, 0)}
-                    </div>
-                    <div className="ball">
-                      {formatBall(frame.balls[1], frameIndex, 1)}
-                    </div>
-                  </>
-                )}
+      <div style={styles.scorecard}>
+        <div style={styles.framesContainer}>
+          {frames.map((frame, frameIndex) => {
+            const isCurrent = frameIndex === currentFrame;
+            const isTenth = frameIndex === 9;
+            
+            let frameStyle = styles.frame;
+            if (isTenth && isCurrent) frameStyle = styles.tenthFrameCurrent;
+            else if (isTenth) frameStyle = styles.tenthFrame;
+            else if (isCurrent) frameStyle = styles.frameCurrent;
+            
+            return (
+              <div 
+                key={frameIndex}
+                style={frameStyle}
+              >
+                <div style={styles.frameNumber}>{frameIndex + 1}</div>
+                <div style={frameIndex === 9 ? styles.ballsRowTenth : styles.ballsRow}>
+                  {frameIndex === 9 ? (
+                    // 10th frame - 3 balls
+                    <>
+                      <div style={{...styles.ballTenth, borderRight: frameIndex === 9 ? '1px solid #333' : 'none'}}>
+                        {formatBall(frame.balls[0], frameIndex, 0)}
+                      </div>
+                      <div style={{...styles.ballTenth, borderRight: frameIndex === 9 ? '1px solid #333' : 'none'}}>
+                        {formatBall(frame.balls[1], frameIndex, 1)}
+                      </div>
+                      <div style={{...styles.ballTenth, borderRight: 'none'}}>
+                        {formatBall(frame.balls[2], frameIndex, 2)}
+                      </div>
+                    </>
+                  ) : (
+                    // Regular frames - 2 balls
+                    <>
+                      <div style={styles.ball}>
+                        {formatBall(frame.balls[0], frameIndex, 0)}
+                      </div>
+                      <div style={{...styles.ball, borderRight: 'none'}}>
+                        {formatBall(frame.balls[1], frameIndex, 1)}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div style={styles.scoreRow}>
+                  {frame.score !== null ? frame.score : ''}
+                </div>
               </div>
-              <div className="score-row">
-                {frame.score !== null ? frame.score : ''}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
-        <div className="total-score">
+        <div style={styles.totalScore}>
           Total Score: {totalScore}
         </div>
       </div>
       
       {gameComplete && (
-        <div className="game-complete">
+        <div style={styles.gameComplete}>
           🎉 Game Complete! Final Score: {totalScore}
         </div>
       )}
       
-      <div className="controls">
+      <div style={styles.controls}>
         {!gameComplete && (
           <>
-            <div className="current-frame-info">
+            <div style={styles.currentFrameInfo}>
               Frame {currentFrame + 1}, Ball {currentBall + 1}
             </div>
             
-            <div className="pin-buttons">
-              {getPinButtons()}
+            <div style={styles.pinButtons}>
+              {getPinButtons().map((button, index) => (
+                <button
+                  key={index}
+                  onClick={button.props.onClick}
+                  style={{
+                    ...styles.pinButton,
+                    ':hover': {
+                      background: '#45a049',
+                      transform: 'scale(1.1)'
+                    }
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#45a049';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#4CAF50';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = 'scale(0.95)';
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                >
+                  {button.props.children}
+                </button>
+              ))}
             </div>
           </>
         )}
         
-        <button onClick={resetGame} className="reset-button">
+        <button 
+          onClick={resetGame} 
+          style={styles.resetButton}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#d32f2f';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f44336';
+          }}
+        >
           New Game
         </button>
       </div>
