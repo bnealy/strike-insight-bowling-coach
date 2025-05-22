@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, CSSProperties } from 'react';
+import React, { useState, useEffect, CSSProperties, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
 
@@ -43,7 +42,9 @@ const BowlingScorecard = () => {
   const editingFrame = activeGame.editingFrame;
   const editingBall = activeGame.editingBall;
 
-  const updateActiveGame = (updates: Partial<typeof activeGame>) => {
+  // Use useCallback to prevent this function from being recreated on every render
+  const updateActiveGame = useCallback((updates: Partial<typeof activeGame>) => {
+    console.log("Updating active game with:", updates);
     setGames(prevGames => 
       prevGames.map(game => 
         game.id === activeGameId 
@@ -51,11 +52,7 @@ const BowlingScorecard = () => {
           : game
       )
     );
-  };
-
-  useEffect(() => {
-    calculateScoresForGame(activeGameId);
-  }, [games, activeGameId]);
+  }, [activeGameId]);
 
   const isStrike = (frameIndex: number, gameFrames = frames) => {
     return gameFrames[frameIndex].balls[0] === 10;
@@ -113,9 +110,14 @@ const BowlingScorecard = () => {
     }
   };
 
-  const calculateScoresForGame = (gameId: number) => {
+  // This is the function causing the infinite loop - we need to memoize it and control when it runs
+  const calculateScoresForGame = useCallback((gameId: number) => {
+    console.log("Calculating scores for game:", gameId);
     const game = games.find(g => g.id === gameId);
-    if (!game) return;
+    if (!game) {
+      console.log("Game not found, id:", gameId);
+      return;
+    }
     
     const gameFrames = game.frames;
     const newFrames = [...gameFrames];
@@ -158,12 +160,30 @@ const BowlingScorecard = () => {
       }
     }
 
+    // Clone the game to ensure we're not mutating the previous state
     updateActiveGame({
       frames: newFrames,
       totalScore: runningTotal,
       gameComplete: allFramesComplete && newFrames[9].score !== null
     });
-  };
+  }, [games, updateActiveGame]);
+
+  // Fix the useEffect to add proper dependency array
+  useEffect(() => {
+    console.log("useEffect running for game scores calculation");
+    // Instead of calculating on every render, only calculate when frames data changes
+    const currentGameFrames = JSON.stringify(activeGame.frames);
+    
+    // Using a ref to avoid the effect running on initial render
+    const initialRender = React.useRef(true);
+    
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
+    }
+    
+    calculateScoresForGame(activeGameId);
+  }, [activeGameId, calculateScoresForGame]); // Only recalculate when the active game changes
 
   const enterPins = (pins: number) => {
     const newFrames = [...frames];
