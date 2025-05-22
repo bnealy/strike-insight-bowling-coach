@@ -153,12 +153,8 @@ const BowlingScorecard = () => {
         }
       }
       
-      for (let i = targetFrame + 1; i < 10; i++) {
-        if (i === 9) {
-          newFrames[i].balls = [null, null, null];
-        } else {
-          newFrames[i].balls = [null, null];
-        }
+      // Only clear scores, not the ball data from subsequent frames
+      for (let i = targetFrame; i < 10; i++) {
         newFrames[i].score = null;
       }
     }
@@ -330,12 +326,31 @@ const BowlingScorecard = () => {
         maxPins = 10 - (frames[activeFrame].balls[0] || 0);
       }
     } else {
+      // 10th frame logic
       if (activeBall === 1 && frames[9].balls[0] === 10) {
+        // After a strike in 10th frame, second ball can be 0-10
         maxPins = 10;
       } else if (activeBall === 1 && frames[9].balls[0] !== 10) {
+        // After non-strike in 10th frame, normal spare logic
         maxPins = 10 - (frames[9].balls[0] || 0);
       } else if (activeBall === 2) {
-        maxPins = 10;
+        // Third ball in 10th frame
+        if (frames[9].balls[0] === 10) {
+          // First ball was strike
+          if (frames[9].balls[1] === 10) {
+            // Strike-Strike, third ball can be 0-10
+            maxPins = 10;
+          } else {
+            // Strike-NonStrike, third ball limited by second ball
+            maxPins = 10 - (frames[9].balls[1] || 0);
+          }
+        } else if ((frames[9].balls[0] || 0) + (frames[9].balls[1] || 0) === 10) {
+          // First two balls made a spare, third ball can be 0-10
+          maxPins = 10;
+        } else {
+          // Should not happen - no third ball for open frame
+          maxPins = 0;
+        }
       }
     }
     
