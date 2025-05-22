@@ -119,29 +119,45 @@ const BowlingScorecard = () => {
       // Also reset scores for all frames from this point forward
       for (let i = frameIndex; i < 10; i++) {
         newFrames[i].score = null;
+        
+        // If not the selected frame, also reset the rolls
+        if (i > frameIndex) {
+          newFrames[i].rolls = [];
+        }
       }
     }
 
     if (frameIndex < 9) {
       // Frames 1-9
       if (frame.rolls.length === 0) {
+        // First roll in the frame
         frame.rolls.push({ pins });
         if (pins === 10) {
-          // Strike - move to next frame if not editing
+          // Strike - move to next frame automatically if not in edit mode
+          frame.rolls[0].isStrike = true;
           if (selectedFrame === null) {
             setCurrentFrame(Math.min(frameIndex + 1, 9));
           } else {
             setSelectedFrame(null);
+            setCurrentFrame(Math.max(currentFrame, frameIndex + 1));
           }
         }
       } else if (frame.rolls.length === 1) {
+        // Second roll in the frame
         if (pins + (frame.rolls[0].pins || 0) <= 10) {
-          frame.rolls.push({ pins });
-          // Move to next frame if not editing
+          // Check if it's a spare
+          if (pins + (frame.rolls[0].pins || 0) === 10) {
+            frame.rolls.push({ pins, isSpare: true });
+          } else {
+            frame.rolls.push({ pins });
+          }
+          
+          // Move to next frame automatically if not in edit mode
           if (selectedFrame === null) {
             setCurrentFrame(Math.min(frameIndex + 1, 9));
           } else {
             setSelectedFrame(null);
+            setCurrentFrame(Math.max(currentFrame, frameIndex + 1));
           }
         } else {
           toast.error("Invalid pin count for this roll");
@@ -152,12 +168,15 @@ const BowlingScorecard = () => {
       // 10th frame
       if (frame.rolls.length === 0) {
         // First roll in 10th frame
-        frame.rolls.push({ pins });
-        if (pins < 10 && selectedFrame === null) {
-          // Not editing and not a strike - don't move to next frame yet
-        } else if (selectedFrame !== null && pins < 10) {
-          // If editing and not a strike, clear selection to prevent frame switching
-          setSelectedFrame(null);
+        if (pins === 10) {
+          frame.rolls.push({ pins, isStrike: true });
+        } else {
+          frame.rolls.push({ pins });
+        }
+        
+        if (selectedFrame !== null) {
+          // If we're editing, don't deselect the frame yet
+          // as we need to complete the editing
         }
       } else if (frame.rolls.length === 1) {
         // Second roll in 10th frame
@@ -169,7 +188,15 @@ const BowlingScorecard = () => {
           return;
         }
         
-        frame.rolls.push({ pins });
+        if (firstRoll === 10 && pins === 10) {
+          // Second strike in 10th frame
+          frame.rolls.push({ pins, isStrike: true });
+        } else if ((firstRoll < 10 && firstRoll + pins === 10) || (firstRoll === 10 && pins < 10)) {
+          // Spare in 10th frame
+          frame.rolls.push({ pins, isSpare: (firstRoll < 10) });
+        } else {
+          frame.rolls.push({ pins });
+        }
         
         // If not a strike or spare in the first two rolls, game is complete
         if (firstRoll !== 10 && firstRoll + pins < 10) {
@@ -178,9 +205,6 @@ const BowlingScorecard = () => {
           } else {
             setSelectedFrame(null);
           }
-        } else if (selectedFrame !== null) {
-          // Clear selection after valid second roll
-          setSelectedFrame(null);
         }
       } else if (frame.rolls.length === 2) {
         // Third roll in 10th frame
@@ -189,20 +213,28 @@ const BowlingScorecard = () => {
         
         // Only allow third roll if strike or spare in the first two rolls
         if (firstRoll === 10 || firstRoll + secondRoll === 10) {
-          // For a spare in second roll, any pins is valid
-          // For a strike in first roll and another in second, any pins is valid
-          // For a strike in first and non-strike in second, need to check remaining pins
-          if (firstRoll === 10 && secondRoll < 10 && pins > (10 - secondRoll) && !frame.rolls[1].isStrike) {
-            toast.error("Invalid pin count for this roll");
-            return;
+          // Check third roll pin count validity
+          if (firstRoll === 10 && secondRoll === 10 && pins === 10) {
+            // Third strike
+            frame.rolls.push({ pins, isStrike: true });
+          } else if (secondRoll === 10 && pins === 10) {
+            // Strike after spare or strike
+            frame.rolls.push({ pins, isStrike: true });
+          } else if (secondRoll < 10 && secondRoll + pins === 10 && firstRoll === 10) {
+            // Spare after strike
+            frame.rolls.push({ pins, isSpare: true });
+          } else {
+            frame.rolls.push({ pins });
           }
           
-          frame.rolls.push({ pins });
           if (selectedFrame === null) {
             setGameComplete(true);
           } else {
             setSelectedFrame(null);
           }
+        } else {
+          toast.error("Invalid roll: no third roll allowed without strike or spare");
+          return;
         }
       }
     }
@@ -215,6 +247,15 @@ const BowlingScorecard = () => {
     // Can't select upcoming frames that haven't been reached yet
     if (frameIndex > currentFrame && frames[frameIndex].rolls.length === 0) {
       toast.error("You need to fill frames in order");
+      return;
+    }
+    
+    // If a frame is already selected and not completed, don't allow selecting another
+    if (selectedFrame !== null && selectedFrame !== frameIndex && frames[selectedFrame].rolls.length < 
+        (selectedFrame < 9 ? (frames[selectedFrame].rolls[0]?.pins === 10 ? 1 : 2) : 
+          (frames[selectedFrame].rolls[0]?.pins === 10 || 
+            (frames[selectedFrame].rolls[0]?.pins || 0) + (frames[selectedFrame].rolls[1]?.pins || 0) === 10 ? 3 : 2))) {
+      toast.error("Please complete the current frame before selecting another");
       return;
     }
     
