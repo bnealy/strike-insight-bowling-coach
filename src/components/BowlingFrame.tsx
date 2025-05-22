@@ -113,10 +113,10 @@ const BowlingFrame = ({ frame, isActive, isComplete, onRoll, onSelect, isSelecte
               // Regular frames show 2 rolls
               <>
                 <div className="w-6 h-6 border border-gray-300 rounded text-xs flex items-center justify-center">
-                  {frame.rolls[0]?.isStrike ? 'X' : formatRoll(frame.rolls[0], 0)}
+                  {formatRoll(frame.rolls[0], 0)}
                 </div>
                 <div className="w-6 h-6 border border-gray-300 rounded text-xs flex items-center justify-center">
-                  {frame.rolls[0]?.isStrike ? '' : formatRoll(frame.rolls[1], 1)}
+                  {formatRoll(frame.rolls[1], 1)}
                 </div>
               </>
             )}

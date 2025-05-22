@@ -84,6 +84,21 @@ const BowlingScorecard = () => {
         }
       } else {
         // 10th frame
+        for (let j = 0; j < frame.rolls.length; j++) {
+          if (j === 0 && frame.rolls[j].pins === 10) {
+            frame.rolls[j].isStrike = true;
+          } else if (j === 1 && frame.rolls[j].pins === 10) {
+            frame.rolls[j].isStrike = true;
+          } else if (j === 1 && (frame.rolls[0].pins || 0) + frame.rolls[j].pins === 10) {
+            frame.rolls[j].isSpare = true;
+          } else if (j === 2 && frame.rolls[1].pins === 10 && frame.rolls[j].pins === 10) {
+            frame.rolls[j].isStrike = true;
+          } else if (j === 2 && (frame.rolls[1].pins || 0) + frame.rolls[j].pins === 10) {
+            frame.rolls[j].isSpare = true;
+          }
+        }
+        
+        // Calculate total for 10th frame
         const totalPins = frame.rolls.reduce((sum, roll) => sum + (roll.pins || 0), 0);
         runningScore += totalPins;
         newFrames[i].score = runningScore;
@@ -97,9 +112,14 @@ const BowlingScorecard = () => {
     const newFrames = [...frames];
     const frame = newFrames[frameIndex];
 
-    // Reset the frame's rolls if editing
-    if (selectedFrame === frameIndex) {
+    // If editing a frame, reset its rolls
+    if (selectedFrame !== null && selectedFrame === frameIndex) {
       frame.rolls = [];
+      
+      // Also reset scores for all frames from this point forward
+      for (let i = frameIndex; i < 10; i++) {
+        newFrames[i].score = null;
+      }
     }
 
     if (frameIndex < 9) {
@@ -107,12 +127,26 @@ const BowlingScorecard = () => {
       if (frame.rolls.length === 0) {
         frame.rolls.push({ pins });
         if (pins === 10) {
-          // Strike - move to next frame
-          setCurrentFrame(Math.min(frameIndex + 1, 9));
+          // Strike - move to next frame if not editing
+          if (selectedFrame === null) {
+            setCurrentFrame(Math.min(frameIndex + 1, 9));
+          } else {
+            setSelectedFrame(null);
+          }
         }
-      } else if (frame.rolls.length === 1 && pins <= (10 - (frame.rolls[0].pins || 0))) {
-        frame.rolls.push({ pins });
-        setCurrentFrame(Math.min(frameIndex + 1, 9));
+      } else if (frame.rolls.length === 1) {
+        if (pins + (frame.rolls[0].pins || 0) <= 10) {
+          frame.rolls.push({ pins });
+          // Move to next frame if not editing
+          if (selectedFrame === null) {
+            setCurrentFrame(Math.min(frameIndex + 1, 9));
+          } else {
+            setSelectedFrame(null);
+          }
+        } else {
+          toast.error("Invalid pin count for this roll");
+          return;
+        }
       }
     } else {
       // 10th frame
@@ -120,15 +154,17 @@ const BowlingScorecard = () => {
         // First roll in 10th frame
         frame.rolls.push({ pins });
         if (pins < 10 && selectedFrame === null) {
-          // Not editing and not a strike
-          // Don't move to next frame yet
+          // Not editing and not a strike - don't move to next frame yet
+        } else if (selectedFrame !== null && pins < 10) {
+          // If editing and not a strike, clear selection to prevent frame switching
+          setSelectedFrame(null);
         }
       } else if (frame.rolls.length === 1) {
         // Second roll in 10th frame
         const firstRoll = frame.rolls[0].pins || 0;
         
-        if (firstRoll < 10 && pins > (10 - firstRoll)) {
-          // Invalid roll - more pins than remaining
+        if ((firstRoll < 10 && pins > (10 - firstRoll)) && !frame.rolls[0].isStrike) {
+          // Invalid roll - more pins than remaining (unless first was a strike)
           toast.error("Invalid pin count for this roll");
           return;
         }
@@ -139,7 +175,12 @@ const BowlingScorecard = () => {
         if (firstRoll !== 10 && firstRoll + pins < 10) {
           if (selectedFrame === null) {
             setGameComplete(true);
+          } else {
+            setSelectedFrame(null);
           }
+        } else if (selectedFrame !== null) {
+          // Clear selection after valid second roll
+          setSelectedFrame(null);
         }
       } else if (frame.rolls.length === 2) {
         // Third roll in 10th frame
@@ -151,7 +192,7 @@ const BowlingScorecard = () => {
           // For a spare in second roll, any pins is valid
           // For a strike in first roll and another in second, any pins is valid
           // For a strike in first and non-strike in second, need to check remaining pins
-          if (firstRoll === 10 && secondRoll < 10 && pins > (10 - secondRoll)) {
+          if (firstRoll === 10 && secondRoll < 10 && pins > (10 - secondRoll) && !frame.rolls[1].isStrike) {
             toast.error("Invalid pin count for this roll");
             return;
           }
@@ -159,6 +200,8 @@ const BowlingScorecard = () => {
           frame.rolls.push({ pins });
           if (selectedFrame === null) {
             setGameComplete(true);
+          } else {
+            setSelectedFrame(null);
           }
         }
       }
@@ -166,22 +209,23 @@ const BowlingScorecard = () => {
 
     const updatedFrames = calculateScore(newFrames);
     setFrames(updatedFrames);
-    
-    // Clear selectedFrame after a roll is added
-    if (selectedFrame !== null) {
-      setSelectedFrame(null);
-    }
   };
 
   const handleFrameSelect = (frameIndex: number) => {
-    // If the frame already has rolls, allow editing
-    if (frames[frameIndex].rolls.length > 0) {
-      setSelectedFrame(frameIndex === selectedFrame ? null : frameIndex);
-    } else if (frameIndex === currentFrame) {
-      // Current active frame - do nothing special
-    } else if (frameIndex < currentFrame) {
-      // Can't select frames before current if they have no rolls
+    // Can't select upcoming frames that haven't been reached yet
+    if (frameIndex > currentFrame && frames[frameIndex].rolls.length === 0) {
       toast.error("You need to fill frames in order");
+      return;
+    }
+    
+    // Already active or completed frames can be selected for editing
+    if (frames[frameIndex].rolls.length > 0 || frameIndex === currentFrame) {
+      // If already selected, deselect it
+      if (selectedFrame === frameIndex) {
+        setSelectedFrame(null);
+      } else {
+        setSelectedFrame(frameIndex);
+      }
     }
   };
 
