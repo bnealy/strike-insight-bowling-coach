@@ -538,13 +538,7 @@ const BowlingScoreCalculator = () => {
                 <button
                   key={index}
                   onClick={button.props.onClick}
-                  style={{
-                    ...styles.pinButton,
-                    ':hover': {
-                      background: '#45a049',
-                      transform: 'scale(1.1)'
-                    }
-                  }}
+                  style={styles.pinButton}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = '#45a049';
                     e.currentTarget.style.transform = 'scale(1.1)';
