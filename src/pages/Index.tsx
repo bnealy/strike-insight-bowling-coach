@@ -1,4 +1,5 @@
-tsximport BowlingScoreCalculator from '../components/BowlingScorecard';
+
+import BowlingScoreCalculator from '../components/BowlingScorecard';
 
 const Index = () => {
   return (
