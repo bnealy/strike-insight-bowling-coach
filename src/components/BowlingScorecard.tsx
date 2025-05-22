@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import BowlingFrame from './BowlingFrame';
 import BowlingInsights from './BowlingInsights';
+import { toast } from 'sonner';
 
 interface Roll {
   pins: number | null;
@@ -26,6 +27,7 @@ const BowlingScorecard = () => {
   );
 
   const [currentFrame, setCurrentFrame] = useState(0);
+  const [selectedFrame, setSelectedFrame] = useState<number | null>(null);
   const [gameComplete, setGameComplete] = useState(false);
 
   const calculateScore = (updatedFrames: Frame[]) => {
@@ -95,6 +97,11 @@ const BowlingScorecard = () => {
     const newFrames = [...frames];
     const frame = newFrames[frameIndex];
 
+    // Reset the frame's rolls if editing
+    if (selectedFrame === frameIndex) {
+      frame.rolls = [];
+    }
+
     if (frameIndex < 9) {
       // Frames 1-9
       if (frame.rolls.length === 0) {
@@ -109,26 +116,73 @@ const BowlingScorecard = () => {
       }
     } else {
       // 10th frame
-      if (frame.rolls.length < 3) {
-        const lastRoll = frame.rolls[frame.rolls.length - 1];
+      if (frame.rolls.length === 0) {
+        // First roll in 10th frame
+        frame.rolls.push({ pins });
+        if (pins < 10 && selectedFrame === null) {
+          // Not editing and not a strike
+          // Don't move to next frame yet
+        }
+      } else if (frame.rolls.length === 1) {
+        // Second roll in 10th frame
+        const firstRoll = frame.rolls[0].pins || 0;
         
-        if (frame.rolls.length === 1 && lastRoll?.pins !== 10 && pins > (10 - (lastRoll.pins || 0))) {
-          return; // Invalid roll
+        if (firstRoll < 10 && pins > (10 - firstRoll)) {
+          // Invalid roll - more pins than remaining
+          toast.error("Invalid pin count for this roll");
+          return;
         }
         
         frame.rolls.push({ pins });
         
-        // Check if 10th frame is complete
-        if (frame.rolls.length === 2 && (frame.rolls[0].pins || 0) + (frame.rolls[1].pins || 0) < 10) {
-          setGameComplete(true);
-        } else if (frame.rolls.length === 3) {
-          setGameComplete(true);
+        // If not a strike or spare in the first two rolls, game is complete
+        if (firstRoll !== 10 && firstRoll + pins < 10) {
+          if (selectedFrame === null) {
+            setGameComplete(true);
+          }
+        }
+      } else if (frame.rolls.length === 2) {
+        // Third roll in 10th frame
+        const firstRoll = frame.rolls[0].pins || 0;
+        const secondRoll = frame.rolls[1].pins || 0;
+        
+        // Only allow third roll if strike or spare in the first two rolls
+        if (firstRoll === 10 || firstRoll + secondRoll === 10) {
+          // For a spare in second roll, any pins is valid
+          // For a strike in first roll and another in second, any pins is valid
+          // For a strike in first and non-strike in second, need to check remaining pins
+          if (firstRoll === 10 && secondRoll < 10 && pins > (10 - secondRoll)) {
+            toast.error("Invalid pin count for this roll");
+            return;
+          }
+          
+          frame.rolls.push({ pins });
+          if (selectedFrame === null) {
+            setGameComplete(true);
+          }
         }
       }
     }
 
     const updatedFrames = calculateScore(newFrames);
     setFrames(updatedFrames);
+    
+    // Clear selectedFrame after a roll is added
+    if (selectedFrame !== null) {
+      setSelectedFrame(null);
+    }
+  };
+
+  const handleFrameSelect = (frameIndex: number) => {
+    // If the frame already has rolls, allow editing
+    if (frames[frameIndex].rolls.length > 0) {
+      setSelectedFrame(frameIndex === selectedFrame ? null : frameIndex);
+    } else if (frameIndex === currentFrame) {
+      // Current active frame - do nothing special
+    } else if (frameIndex < currentFrame) {
+      // Can't select frames before current if they have no rolls
+      toast.error("You need to fill frames in order");
+    }
   };
 
   const resetGame = () => {
@@ -138,6 +192,7 @@ const BowlingScorecard = () => {
       frameNumber: i + 1,
     })));
     setCurrentFrame(0);
+    setSelectedFrame(null);
     setGameComplete(false);
   };
 
@@ -158,9 +213,11 @@ const BowlingScorecard = () => {
               <BowlingFrame
                 key={index}
                 frame={frame}
-                isActive={currentFrame === index && !gameComplete}
+                isActive={currentFrame === index && !gameComplete && selectedFrame === null}
                 isComplete={frame.score !== null || gameComplete}
                 onRoll={(pins) => addRoll(index, pins)}
+                onSelect={() => handleFrameSelect(index)}
+                isSelected={selectedFrame === index}
               />
             ))}
           </div>

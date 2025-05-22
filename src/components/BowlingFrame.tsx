@@ -18,9 +18,11 @@ interface BowlingFrameProps {
   isActive: boolean;
   isComplete: boolean;
   onRoll: (pins: number) => void;
+  onSelect: () => void;
+  isSelected: boolean;
 }
 
-const BowlingFrame = ({ frame, isActive, isComplete, onRoll }: BowlingFrameProps) => {
+const BowlingFrame = ({ frame, isActive, isComplete, onRoll, onSelect, isSelected }: BowlingFrameProps) => {
   const is10thFrame = frame.frameNumber === 10;
   
   const formatRoll = (roll: Roll | undefined, rollIndex: number): string => {
@@ -33,21 +35,37 @@ const BowlingFrame = ({ frame, isActive, isComplete, onRoll }: BowlingFrameProps
   };
 
   const getRollButtons = () => {
-    if (!isActive || isComplete) return null;
+    if (!isActive && !isSelected) return null;
 
     const rollIndex = frame.rolls.length;
     let maxPins = 10;
 
-    if (rollIndex === 1 && !is10thFrame) {
-      maxPins = 10 - (frame.rolls[0]?.pins || 0);
-    } else if (rollIndex === 1 && is10thFrame && frame.rolls[0]?.pins !== 10) {
-      maxPins = 10 - (frame.rolls[0]?.pins || 0);
-    } else if (rollIndex === 2 && is10thFrame && frame.rolls[1]?.pins !== undefined) {
-      const prevTotal = (frame.rolls[0]?.pins || 0) + (frame.rolls[1]?.pins || 0);
-      if (prevTotal < 10) {
-        return null; // 10th frame complete without strike/spare
+    // 10th frame special logic
+    if (is10thFrame) {
+      if (rollIndex === 0) {
+        maxPins = 10; // First roll in 10th frame - all pins available
+      } else if (rollIndex === 1) {
+        // Second roll
+        if (frame.rolls[0]?.pins === 10) {
+          maxPins = 10; // Strike on first roll - all pins available
+        } else {
+          maxPins = 10 - (frame.rolls[0]?.pins || 0); // Otherwise remaining pins
+        }
+      } else if (rollIndex === 2) {
+        // Third roll eligibility and pin count
+        if (frame.rolls[0]?.pins === 10 || (frame.rolls[0]?.pins || 0) + (frame.rolls[1]?.pins || 0) === 10) {
+          maxPins = 10; // Strike or spare - all pins available
+        } else {
+          return null; // No third roll if no strike or spare
+        }
       }
-      maxPins = 10;
+    } else {
+      // Regular frame logic
+      if (rollIndex === 1) {
+        maxPins = 10 - (frame.rolls[0]?.pins || 0);
+      } else if (rollIndex >= 2) {
+        return null; // No more than 2 rolls in regular frames
+      }
     }
 
     return (
@@ -66,7 +84,12 @@ const BowlingFrame = ({ frame, isActive, isComplete, onRoll }: BowlingFrameProps
   };
 
   return (
-    <Card className={`${isActive ? 'ring-2 ring-blue-500' : ''} ${isComplete ? 'bg-green-50' : ''}`}>
+    <Card 
+      className={`cursor-pointer ${isActive ? 'ring-2 ring-blue-500' : ''} 
+      ${isSelected ? 'ring-2 ring-green-500' : ''} 
+      ${isComplete && !isSelected ? 'bg-green-50' : ''}`}
+      onClick={onSelect}
+    >
       <CardContent className="p-2">
         <div className="text-center">
           <div className="text-xs text-gray-600 mb-1">Frame {frame.frameNumber}</div>
