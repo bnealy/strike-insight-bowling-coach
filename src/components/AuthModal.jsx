@@ -52,7 +52,7 @@ const AuthModal = ({ isOpen, onClose }) => {
           onClose();
           toast({
             title: "Account created",
-            description: "Your account has been created successfully. Please check your email for verification.",
+            description: "Your account has been created successfully. You are now signed in.",
           });
         } else {
           console.error('Registration failed:', result.error);

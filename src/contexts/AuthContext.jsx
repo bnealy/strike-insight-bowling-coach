@@ -160,29 +160,31 @@ export const AuthProvider = ({ children }) => {
       if (data?.user) {
         console.log('Registration successful:', data.user.email);
         
-        // Create profile in bowlerprofiles table - Note the lowercase table name
-        try {
-          console.log('Creating bowler profile for user:', data.user.id);
-          const { error: profileError } = await supabase
-            .from('bowlerprofiles')
-            .insert({
-              user_id: data.user.id,
-              first_name: name,
-              email_address: email,
-            });
-            
-          if (profileError) {
-            console.error('Error creating bowler profile:', profileError);
-            // Log the full error for debugging
-            console.error('Full error details:', JSON.stringify(profileError, null, 2));
-            // Don't return error to user as auth was successful
-          } else {
-            console.log('Bowler profile created successfully');
+        // Create profile in bowlerprofiles table with 250ms delay to ensure auth is settled
+        setTimeout(async () => {
+          try {
+            console.log('Creating bowler profile for user:', data.user.id);
+            const { error: profileError } = await supabase
+              .from('bowlerprofiles')
+              .insert({
+                user_id: data.user.id,
+                first_name: name,
+                email_address: email,
+              });
+              
+            if (profileError) {
+              console.error('Error creating bowler profile:', profileError);
+              // Log the full error for debugging
+              console.error('Full error details:', JSON.stringify(profileError, null, 2));
+              // Don't return error to user as auth was successful
+            } else {
+              console.log('Bowler profile created successfully');
+            }
+          } catch (profileErr) {
+            console.error('Unexpected error creating bowler profile:', profileErr);
+            console.error('Full error details:', JSON.stringify(profileErr, null, 2));
           }
-        } catch (profileErr) {
-          console.error('Unexpected error creating bowler profile:', profileErr);
-          console.error('Full error details:', JSON.stringify(profileErr, null, 2));
-        }
+        }, 250);
         
         return { success: true };
       } else {
