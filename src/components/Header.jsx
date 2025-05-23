@@ -12,6 +12,8 @@ const Header = ({ onSaveGames, hasUnsavedGames }) => {
 
   const handleSaveGames = () => {
     if (onSaveGames) {
+      // Call the save games function
+      console.log('Attempting to save games');
       onSaveGames();
     }
   };

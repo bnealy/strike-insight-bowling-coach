@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useCallback } from 'react';
-import { Game, Frame } from '../types/bowlingTypes';
+import { Game, Frame, SaveGameResult } from '../types/bowlingTypes';
 import { calculateScoresForGame } from '../utils/bowlingScoreUtils';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../integrations/supabase/client';

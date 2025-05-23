@@ -20,4 +20,5 @@ export interface Game {
 export interface SaveGameResult {
   success: boolean;
   error?: string;
+  sessionId?: string;
 }

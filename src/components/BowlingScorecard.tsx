@@ -57,7 +57,25 @@ const BowlingScorecard = () => {
     
     try {
       setSaveError(null);
-      const result = await saveGames(sessions.filter(s => s.isVisible));
+      console.info("Attempting to save games for user:", isAuthenticated);
+      
+      // Filter out sessions with no games or games with no total score
+      const validSessions = sessions.filter(s => {
+        return s.isVisible && s.games.some(g => g.isVisible && g.totalScore !== null);
+      });
+      
+      if (validSessions.length === 0) {
+        setSaveError("No valid games to save. Please complete at least one game.");
+        toast({
+          title: "Error",
+          description: "No valid games to save. Please complete at least one game.",
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+      
+      const result = await saveGames(validSessions);
       
       if (result.success) {
         setShowSaveSuccess(true);
@@ -78,9 +96,9 @@ const BowlingScorecard = () => {
         });
         setTimeout(() => setSaveError(null), 5000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in handleSaveGames:', error);
-      setSaveError('Unexpected error saving games');
+      setSaveError(error.message || 'Unexpected error saving games');
       toast({
         title: "Error",
         description: "An unexpected error occurred while saving games.",
