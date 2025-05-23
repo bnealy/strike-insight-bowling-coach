@@ -5,6 +5,8 @@ import Header from './Header';
 import BowlingGame from './BowlingGame';
 import PinButtons from './PinButtons';
 import { useBowlingGame } from '../hooks/useBowlingGame';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle, XCircle } from "lucide-react";
 
 // Helper function to add proper type assertions for CSS properties
 const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => props as unknown as CSSProperties;
@@ -12,6 +14,7 @@ const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => pro
 const BowlingScorecard = () => {
   const { saveGames, isAuthenticated } = useAuth();
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
   const {
     games,
@@ -28,15 +31,23 @@ const BowlingScorecard = () => {
   
   const { frames, currentFrame, currentBall, gameComplete, editingFrame, editingBall } = activeGame;
 
-  const handleSaveGames = () => {
+  const handleSaveGames = async () => {
     if (!isAuthenticated) return;
     
-    const result = saveGames(games);
-    if (result.success) {
-      setShowSaveSuccess(true);
-      setTimeout(() => setShowSaveSuccess(false), 3000);
-    } else {
-      alert('Error saving games: ' + result.error);
+    try {
+      setSaveError(null);
+      const result = await saveGames(games);
+      if (result.success) {
+        setShowSaveSuccess(true);
+        setTimeout(() => setShowSaveSuccess(false), 5000);
+      } else {
+        setSaveError(result.error || 'Unknown error saving games');
+        setTimeout(() => setSaveError(null), 5000);
+      }
+    } catch (error) {
+      console.error('Error in handleSaveGames:', error);
+      setSaveError('Unexpected error saving games');
+      setTimeout(() => setSaveError(null), 5000);
     }
   };
 
@@ -52,17 +63,23 @@ const BowlingScorecard = () => {
       <Header onSaveGames={handleSaveGames} hasUnsavedGames={isAuthenticated && hasUnsavedGames} />
       
       {showSaveSuccess && (
-        <div style={cssProps({
-          background: '#4CAF50',
-          color: 'white',
-          padding: '15px',
-          borderRadius: '10px',
-          textAlign: 'center',
-          marginBottom: '20px',
-          fontSize: '1.1em'
-        })}>
-          ✅ Games saved successfully!
-        </div>
+        <Alert className="mb-5 bg-green-50 border-green-500">
+          <CheckCircle className="h-5 w-5 text-green-500" />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            Games saved successfully to your profile!
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {saveError && (
+        <Alert className="mb-5 bg-red-50 border-red-500">
+          <XCircle className="h-5 w-5 text-red-500" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {saveError}
+          </AlertDescription>
+        </Alert>
       )}
       
       <div style={cssProps({ textAlign: 'center', color: 'white', marginBottom: '30px' })}>

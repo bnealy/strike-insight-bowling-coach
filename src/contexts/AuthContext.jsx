@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -321,7 +320,7 @@ export const AuthProvider = ({ children }) => {
         return { success: true, sessionId: sessionData.id };
       } catch (error) {
         console.error('Error saving games:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error.message || 'An unexpected error occurred while saving games' };
       }
     },
 
