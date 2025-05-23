@@ -2,47 +2,12 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface UserStats {
-  games_played: number;
-  average_score: number;
-  highest_score: number | null;
-  lowest_score: number | null;
-  total_strikes: number;
-  total_spares: number;
-}
+import { useUserStats } from '@/hooks/useUserStats';
 
 const UserStatistics = () => {
-  const { isAuthenticated, user } = useAuth();
-  
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['userStats', user?.id],
-    queryFn: async (): Promise<UserStats | null> => {
-      if (!isAuthenticated || !user?.id) return null;
-      
-      try {
-        const { data, error } = await supabase
-          .from('user_bowling_stats')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching user stats:', error);
-          return null;
-        }
-        
-        return data;
-      } catch (err) {
-        console.error('Unexpected error fetching stats:', err);
-        return null;
-      }
-    },
-    enabled: !!isAuthenticated && !!user?.id,
-  });
+  const { isAuthenticated } = useAuth();
+  const { stats, isLoading } = useUserStats();
   
   // If user is not authenticated, don't show the stats card
   if (!isAuthenticated) return null;

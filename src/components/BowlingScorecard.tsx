@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
 import SaveGameAlert from './alerts/SaveGameAlert';
 import { useBowlingGame } from '../hooks/useBowlingGame';
+import { useUserStats } from '@/hooks/useUserStats';
 import { useToast } from "@/hooks/use-toast";
 import { FlowState, BowlingFlowStep } from '@/types/flowTypes';
 
@@ -16,6 +17,7 @@ const BowlingScorecard = () => {
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { updateUserStats } = useUserStats();
   
   // Flow state management
   const [flowState, setFlowState] = useState<FlowState>({
@@ -40,8 +42,7 @@ const BowlingScorecard = () => {
     markSessionAsSaved,
     toggleSessionVisibility,
     toggleGameVisibility,
-    renameSession,
-    updateUserStats
+    renameSession
   } = useBowlingGame();
   
   // Navigation handlers for the flow
