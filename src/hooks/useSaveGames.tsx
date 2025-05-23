@@ -36,48 +36,40 @@ export const useSaveGames = () => {
 
     try {
       for (const session of visibleSessions) {
-        // Get ALL visible games, not just ones with scores
-        const visibleGames = session.games.filter(game => game.isVisible);
-        
-        console.log('Attempting to save session:', session.title, 'with games:', visibleGames.length);
-        console.log('Games to save:', visibleGames.map(g => ({ 
-          id: g.id, 
-          totalScore: g.totalScore, 
-          gameComplete: g.gameComplete,
-          frames: g.frames.length,
-          currentFrame: g.currentFrame
-        })));
-
-        // Validate each game's total score before creating the session
-        const validatedGames = visibleGames.map(game => {
-          const validateBowlingScore = (score: any): number => {
-            // Handle undefined, null, or non-numeric values
-            if (score === null || score === undefined) {
-              console.warn('Game total score is null/undefined, defaulting to 0');
-              return 0;
-            }
-            
-            const numericScore = Number(score);
-            if (isNaN(numericScore) || numericScore < 0 || numericScore > 300) {
-              console.warn('Invalid bowling score detected:', score, 'defaulting to 0');
-              return 0;
-            }
-            return Math.floor(numericScore);
-          };
+        // Only save games that have been started (have at least one frame with data)
+        const savableGames = session.games.filter(game => {
+          const isVisible = game.isVisible;
+          const hasValidScore = typeof game.totalScore === 'number' && !isNaN(game.totalScore);
+          const hasFrameData = game.frames && game.frames.some(frame => 
+            frame.balls && frame.balls.some(ball => ball !== null)
+          );
           
-          return {
-            ...game,
-            validatedTotalScore: validateBowlingScore(game.totalScore)
-          };
+          console.log('Game save check:', {
+            id: game.id,
+            isVisible,
+            hasValidScore,
+            totalScore: game.totalScore,
+            hasFrameData,
+            shouldSave: isVisible && hasValidScore && hasFrameData
+          });
+          
+          return isVisible && hasValidScore && hasFrameData;
         });
+        
+        if (savableGames.length === 0) {
+          console.log('No savable games in session:', session.title);
+          continue;
+        }
+        
+        console.log('Saving session:', session.title, 'with', savableGames.length, 'games');
 
-        // Create session in database with the correct total_games count (all visible games)
+        // Create session in database
         const { data: sessionData, error: sessionError } = await supabase
           .from('bowling_game_sessions')
           .insert([{
             user_id: user.id,
             title: session.title,
-            total_games: validatedGames.length // Use validated games count
+            total_games: savableGames.length
           }])
           .select()
           .single();
@@ -89,17 +81,18 @@ export const useSaveGames = () => {
 
         console.log('Created game session:', sessionData);
 
-        // Save ALL validated games
-        for (const game of validatedGames) {
-          console.log('Saving game:', game.id, 'with validated total score:', game.validatedTotalScore, 'original score:', game.totalScore);
+        // Save games
+        for (const game of savableGames) {
+          const totalScore = Math.floor(Number(game.totalScore)) || 0;
           
-          // Insert game with validated score
+          console.log('Saving game:', game.id, 'with score:', totalScore);
+          
           const { data: gameData, error: gameError } = await supabase
             .from('bowling_games')
             .insert([{
               session_id: sessionData.id,
               game_number: game.id,
-              total_score: game.validatedTotalScore, // Use pre-validated score
+              total_score: totalScore,
               is_complete: game.gameComplete || false
             }])
             .select()
@@ -112,7 +105,7 @@ export const useSaveGames = () => {
 
           console.log('Game saved successfully:', gameData);
 
-          // Save all frames for this game
+          // Save frames
           const frameData = game.frames.map((frame, index) => ({
             game_id: gameData.id,
             frame_number: index + 1,
@@ -134,14 +127,13 @@ export const useSaveGames = () => {
           console.log('Frames saved for game:', gameData.id);
         }
 
-        // Mark session as saved
         markSessionAsSaved(session.id);
         console.log('Session marked as saved:', session.id);
       }
 
       toast({
         title: "Games Saved Successfully",
-        description: `Saved ${visibleSessions.length} session${visibleSessions.length !== 1 ? 's' : ''} with ${visibleSessions.reduce((total, session) => total + session.games.filter(g => g.isVisible).length, 0)} games to your account.`,
+        description: `Saved ${visibleSessions.length} session${visibleSessions.length !== 1 ? 's' : ''} to your account.`,
         duration: 3000,
       });
 
