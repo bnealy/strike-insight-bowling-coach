@@ -23,18 +23,23 @@ const UserStatistics = () => {
     queryFn: async (): Promise<UserStats | null> => {
       if (!isAuthenticated || !user?.id) return null;
       
-      const { data, error } = await supabase
-        .from('user_bowling_stats')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching user stats:', error);
+      try {
+        const { data, error } = await supabase
+          .from('user_bowling_stats')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching user stats:', error);
+          return null;
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Unexpected error fetching stats:', err);
         return null;
       }
-      
-      return data;
     },
     enabled: !!isAuthenticated && !!user?.id,
   });
