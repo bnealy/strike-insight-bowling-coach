@@ -1,9 +1,14 @@
 
-// src/pages/Index.tsx
-import App from '../App';
+import React from 'react';
+import BowlingScorecard from '../components/BowlingScorecard';
+import { useAuth } from '../contexts/AuthContext';
 
 const Index = () => {
-  return <App />;
+  return (
+    <div className="main-container">
+      <BowlingScorecard />
+    </div>
+  );
 };
 
 export default Index;
