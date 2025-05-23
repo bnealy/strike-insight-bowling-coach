@@ -20,6 +20,8 @@ interface GameEntryScreenProps {
   enterPins: (pins: number) => void;
   cancelEdit: () => void;
   hasUnsavedGames: boolean;
+  onSaveGames: () => Promise<void>;
+  addGameToSession: () => void;
 }
 
 const GameEntryScreen: React.FC<GameEntryScreenProps> = ({ 
@@ -35,7 +37,9 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   toggleGameVisibility,
   enterPins,
   cancelEdit,
-  hasUnsavedGames
+  hasUnsavedGames,
+  onSaveGames,
+  addGameToSession
 }) => {
   // Find the active game
   const activeGame = games.find(game => game.id === activeGameId);
@@ -54,6 +58,21 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
               </span>
             )}
           </h2>
+          <div className="flex gap-4">
+            <button
+              onClick={addGameToSession}
+              className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
+            >
+              Add Another Game
+            </button>
+            
+            <button
+              onClick={onSaveGames}
+              className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-4 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
+            >
+              Save Games
+            </button>
+          </div>
         </div>
         
         {visibleGames.map((game, index) => (

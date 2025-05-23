@@ -33,20 +33,6 @@ const Header = ({
         <h1 className="text-2xl font-bold text-white m-0">🎳 BowlTracker</h1>
         
         <div className="flex items-center gap-4">
-          <button
-            onClick={onAddGame}
-            className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
-          >
-            Add Another Game
-          </button>
-          
-          <button
-            onClick={handleSaveGames}
-            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-4 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
-          >
-            Save Games
-          </button>
-          
           {isAuthenticated ? (
             <UserMenu 
               user={user} 
@@ -59,14 +45,6 @@ const Header = ({
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.5; }
-          100% { opacity: 1; }
-        }
-      `}</style>
     </>
   );
 };
