@@ -251,60 +251,169 @@ export const AuthProvider = ({ children }) => {
       try {
         console.log('Attempting to save games for user:', user.id);
         
-        // In a real implementation, we would save to Supabase here
-        // For now, we'll maintain compatibility with the existing localStorage approach
-        const users = JSON.parse(localStorage.getItem('bowlingUsers') || '[]');
-        const userIndex = users.findIndex(u => u.id === user.id);
+        // Create a new game session
+        const { data: sessionData, error: sessionError } = await supabase
+          .from('bowling_game_sessions')
+          .insert({
+            user_id: user.id,
+            title: `Bowling Session ${new Date().toLocaleDateString()}`,
+            total_games: games.length
+          })
+          .select()
+          .single();
         
-        if (userIndex === -1) {
-          console.error('User not found in localStorage');
-          throw new Error('User not found');
-        }
-
-        const gameSession = {
-          id: Date.now().toString(),
-          games: games,
-          savedAt: new Date().toISOString(),
-          totalGames: games.length
-        };
-
-        if (!users[userIndex].savedGames) {
-          users[userIndex].savedGames = [];
+        if (sessionError) {
+          console.error('Error creating game session:', sessionError);
+          return { success: false, error: sessionError.message };
         }
         
-        users[userIndex].savedGames.push(gameSession);
-        localStorage.setItem('bowlingUsers', JSON.stringify(users));
+        console.log('Created game session:', sessionData);
         
-        console.log('Games saved successfully');
-        return { success: true, sessionId: gameSession.id };
+        // Save each game in the session
+        for (let i = 0; i < games.length; i++) {
+          const game = games[i];
+          
+          // Insert the game
+          const { data: gameData, error: gameError } = await supabase
+            .from('bowling_games')
+            .insert({
+              session_id: sessionData.id,
+              game_number: i + 1,
+              total_score: game.totalScore,
+              is_complete: game.gameComplete
+            })
+            .select()
+            .single();
+          
+          if (gameError) {
+            console.error(`Error saving game ${i + 1}:`, gameError);
+            continue;
+          }
+          
+          console.log(`Saved game ${i + 1}:`, gameData);
+          
+          // Save each frame for the game
+          for (let j = 0; j < game.frames.length; j++) {
+            const frame = game.frames[j];
+            
+            const { error: frameError } = await supabase
+              .from('bowling_frames')
+              .insert({
+                game_id: gameData.id,
+                frame_number: j,
+                ball1_pins: frame.balls[0],
+                ball2_pins: frame.balls[1],
+                ball3_pins: j === 9 ? frame.balls[2] : null, // Only 10th frame has a 3rd ball
+                score: frame.score
+              });
+            
+            if (frameError) {
+              console.error(`Error saving frame ${j + 1} for game ${i + 1}:`, frameError);
+            }
+          }
+        }
+        
+        toast({
+          title: "Games saved",
+          description: `Successfully saved ${games.length} game${games.length !== 1 ? 's' : ''} to your profile.`,
+        });
+        
+        return { success: true, sessionId: sessionData.id };
       } catch (error) {
         console.error('Error saving games:', error);
         return { success: false, error: error.message };
       }
     },
 
-    getSavedGames: () => {
+    getSavedGames: async () => {
       if (!user) {
         console.log('Cannot get saved games: User not logged in');
         return [];
       }
 
       try {
-        console.log('Attempting to get saved games for user:', user.id);
+        console.log('Fetching saved games for user:', user.id);
         
-        // In a real implementation, we would fetch from Supabase here
-        // For now, we'll maintain compatibility with the existing localStorage approach
-        const users = JSON.parse(localStorage.getItem('bowlingUsers') || '[]');
-        const foundUser = users.find(u => u.id === user.id);
-        const savedGames = foundUser?.savedGames || [];
+        const { data: sessions, error: sessionsError } = await supabase
+          .from('bowling_game_sessions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
         
-        console.log(`Found ${savedGames.length} saved game sessions`);
-        return savedGames;
+        if (sessionsError) {
+          console.error('Error fetching game sessions:', sessionsError);
+          return [];
+        }
+        
+        console.log(`Found ${sessions.length} saved game sessions`);
+        return sessions;
       } catch (error) {
         console.error('Error getting saved games:', error);
         return [];
       }
     },
+    
+    getSavedGameDetails: async (sessionId) => {
+      if (!user) {
+        console.log('Cannot get saved game details: User not logged in');
+        return null;
+      }
+
+      try {
+        // Fetch the session first to verify user ownership
+        const { data: session, error: sessionError } = await supabase
+          .from('bowling_game_sessions')
+          .select('*')
+          .eq('id', sessionId)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (sessionError) {
+          console.error('Error fetching game session or unauthorized access:', sessionError);
+          return null;
+        }
+        
+        // Fetch games in the session
+        const { data: games, error: gamesError } = await supabase
+          .from('bowling_games')
+          .select('*')
+          .eq('session_id', sessionId)
+          .order('game_number', { ascending: true });
+        
+        if (gamesError) {
+          console.error('Error fetching games:', gamesError);
+          return null;
+        }
+        
+        // Fetch frames for each game
+        const gamesWithFrames = [];
+        for (const game of games) {
+          const { data: frames, error: framesError } = await supabase
+            .from('bowling_frames')
+            .select('*')
+            .eq('game_id', game.id)
+            .order('frame_number', { ascending: true });
+          
+          if (framesError) {
+            console.error(`Error fetching frames for game ${game.id}:`, framesError);
+            continue;
+          }
+          
+          gamesWithFrames.push({
+            ...game,
+            frames
+          });
+        }
+        
+        return {
+          session,
+          games: gamesWithFrames
+        };
+      } catch (error) {
+        console.error('Error getting saved game details:', error);
+        return null;
+      }
+    }
   };
 
   const value = {

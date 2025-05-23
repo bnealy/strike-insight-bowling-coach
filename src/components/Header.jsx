@@ -1,3 +1,4 @@
+
 // src/components/Header.js
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';

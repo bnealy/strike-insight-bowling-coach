@@ -39,6 +39,115 @@ export type Database = {
         }
         Relationships: []
       }
+      bowling_frames: {
+        Row: {
+          ball1_pins: number | null
+          ball2_pins: number | null
+          ball3_pins: number | null
+          created_at: string
+          frame_number: number
+          game_id: string
+          id: string
+          score: number | null
+          updated_at: string
+        }
+        Insert: {
+          ball1_pins?: number | null
+          ball2_pins?: number | null
+          ball3_pins?: number | null
+          created_at?: string
+          frame_number: number
+          game_id: string
+          id?: string
+          score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ball1_pins?: number | null
+          ball2_pins?: number | null
+          ball3_pins?: number | null
+          created_at?: string
+          frame_number?: number
+          game_id?: string
+          id?: string
+          score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bowling_frames_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "bowling_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bowling_game_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          total_games: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          total_games: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          total_games?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bowling_games: {
+        Row: {
+          created_at: string
+          game_number: number
+          id: string
+          is_complete: boolean
+          session_id: string
+          total_score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          game_number: number
+          id?: string
+          is_complete?: boolean
+          session_id: string
+          total_score: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          game_number?: number
+          id?: string
+          is_complete?: boolean
+          session_id?: string
+          total_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bowling_games_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "bowling_game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
