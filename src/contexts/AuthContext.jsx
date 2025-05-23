@@ -160,8 +160,9 @@ export const AuthProvider = ({ children }) => {
       if (data?.user) {
         console.log('Registration successful:', data.user.email);
         
-        // Save profile info - can be enhanced later to save to BowlerProfiles table
+        // Create profile in BowlerProfiles table
         try {
+          console.log('Creating bowler profile for user:', data.user.id);
           const { error: profileError } = await supabase
             .from('BowlerProfiles')
             .insert({
@@ -172,12 +173,15 @@ export const AuthProvider = ({ children }) => {
             
           if (profileError) {
             console.error('Error creating bowler profile:', profileError);
+            // Log the full error for debugging
+            console.error('Full error details:', JSON.stringify(profileError, null, 2));
             // Don't return error to user as auth was successful
           } else {
             console.log('Bowler profile created successfully');
           }
         } catch (profileErr) {
           console.error('Unexpected error creating bowler profile:', profileErr);
+          console.error('Full error details:', JSON.stringify(profileErr, null, 2));
         }
         
         return { success: true };
