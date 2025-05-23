@@ -26,20 +26,24 @@ const PinButtons: React.FC<PinButtonsProps> = ({
   gameComplete
 }) => {
   const getMaxPins = (): number => {
-    if (currentFrame >= 10 || currentBall >= 3 || gameComplete) return 0;
+    // Use editing frame/ball if in edit mode, otherwise use current frame/ball
+    const targetFrame = editingFrame !== null ? editingFrame : currentFrame;
+    const targetBall = editingBall !== null ? editingBall : currentBall;
+    
+    if (targetFrame >= 10 || targetBall >= 3 || gameComplete) return 0;
     
     let maxPins = 10;
     
-    if (currentFrame < 9) {
-      if (currentBall === 1) {
-        maxPins = 10 - (frames[currentFrame].balls[0] || 0);
+    if (targetFrame < 9) {
+      if (targetBall === 1) {
+        maxPins = 10 - (frames[targetFrame].balls[0] || 0);
       }
     } else {
-      if (currentBall === 1 && frames[9].balls[0] === 10) {
+      if (targetBall === 1 && frames[9].balls[0] === 10) {
         maxPins = 10;
-      } else if (currentBall === 1 && frames[9].balls[0] !== 10) {
+      } else if (targetBall === 1 && frames[9].balls[0] !== 10) {
         maxPins = 10 - (frames[9].balls[0] || 0);
-      } else if (currentBall === 2) {
+      } else if (targetBall === 2) {
         if (frames[9].balls[0] === 10) {
           if (frames[9].balls[1] === 10) {
             maxPins = 10;
