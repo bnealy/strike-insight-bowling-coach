@@ -160,11 +160,11 @@ export const AuthProvider = ({ children }) => {
       if (data?.user) {
         console.log('Registration successful:', data.user.email);
         
-        // Create profile in BowlerProfiles table
+        // Create profile in bowlerprofiles table - Note the lowercase table name
         try {
           console.log('Creating bowler profile for user:', data.user.id);
           const { error: profileError } = await supabase
-            .from('BowlerProfiles')
+            .from('bowlerprofiles')
             .insert({
               user_id: data.user.id,
               first_name: name,
