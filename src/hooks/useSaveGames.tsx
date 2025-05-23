@@ -36,19 +36,19 @@ export const useSaveGames = () => {
 
     try {
       for (const session of visibleSessions) {
+        // Get ALL visible games, not just ones with scores
         const visibleGames = session.games.filter(game => game.isVisible);
         
-        if (visibleGames.length === 0) continue;
-
         console.log('Attempting to save session:', session.title, 'with games:', visibleGames.length);
+        console.log('Games to save:', visibleGames.map(g => ({ id: g.id, totalScore: g.totalScore, gameComplete: g.gameComplete })));
 
-        // Create session in database with the correct total_games count
+        // Create session in database with the correct total_games count (all visible games)
         const { data: sessionData, error: sessionError } = await supabase
           .from('bowling_game_sessions')
           .insert([{
             user_id: user.id,
             title: session.title,
-            total_games: visibleGames.length // Use actual visible games count
+            total_games: visibleGames.length // Use all visible games count
           }])
           .select()
           .single();
@@ -60,9 +60,9 @@ export const useSaveGames = () => {
 
         console.log('Created game session:', sessionData);
 
-        // Save all games in this session
+        // Save ALL visible games, even if they're empty
         for (const game of visibleGames) {
-          console.log('Saving game:', game.id, 'with total score:', game.totalScore);
+          console.log('Saving game:', game.id, 'with total score:', game.totalScore, 'complete:', game.gameComplete);
           
           // Ensure total_score is never null - use 0 as default
           const totalScore = game.totalScore ?? 0;
@@ -115,7 +115,7 @@ export const useSaveGames = () => {
 
       toast({
         title: "Games Saved Successfully",
-        description: `Saved ${visibleSessions.length} session${visibleSessions.length !== 1 ? 's' : ''} to your account.`,
+        description: `Saved ${visibleSessions.length} session${visibleSessions.length !== 1 ? 's' : ''} with ${visibleSessions.reduce((total, session) => total + session.games.filter(g => g.isVisible).length, 0)} games to your account.`,
         duration: 3000,
       });
 

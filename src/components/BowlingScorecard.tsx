@@ -88,20 +88,25 @@ const BowlingScorecard = () => {
       setSaveError(null);
       console.info("Attempting to save games for user:", isAuthenticated);
       
+      // Get sessions that are visible and have at least one visible game
       const validSessions = sessions.filter(s => {
-        return s.isVisible && s.games.some(g => g.isVisible && g.totalScore !== null);
+        const hasVisibleGames = s.isVisible && s.games.some(g => g.isVisible);
+        console.log('Session validation:', s.title, 'visible:', s.isVisible, 'hasVisibleGames:', hasVisibleGames, 'gameCount:', s.games.filter(g => g.isVisible).length);
+        return hasVisibleGames;
       });
       
       if (validSessions.length === 0) {
-        setSaveError("No valid games to save. Please complete at least one game.");
+        setSaveError("No sessions with games to save.");
         toast({
           title: "Error",
-          description: "No valid games to save. Please complete at least one game.",
+          description: "No sessions with games to save.",
           variant: "destructive",
           duration: 3000,
         });
         return;
       }
+      
+      console.log('Valid sessions to save:', validSessions.map(s => ({ title: s.title, gameCount: s.games.filter(g => g.isVisible).length })));
       
       const result = await saveGames(validSessions);
       
