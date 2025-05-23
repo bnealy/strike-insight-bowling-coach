@@ -42,7 +42,13 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
         Game {gameIndex + 1} Editor
       </h3>
       
-      {!gameComplete && (
+      {gameComplete ? (
+        <div className="mb-4 text-white text-center">
+          <p className="text-xl font-bold mb-2">🎉 Congratulations! 🎉</p>
+          <p className="text-lg">Game Complete!</p>
+          <p className="text-md">Final Score: {frames[9].score}</p>
+        </div>
+      ) : (
         <div className="mb-4">
           <p className="text-white mb-2">
             {isEditing 
