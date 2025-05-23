@@ -25,7 +25,7 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
   handleBallClick,
   toggleVisibility,
   savedStatus,
-  isAuthenticated = true,
+  isAuthenticated = false,
   onDeleteGame
 }) => {
   return (

@@ -1,7 +1,10 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
+import AuthModal from './AuthModal';
 import SaveGameAlert from './alerts/SaveGameAlert';
+import SignInRequiredDialog from './alerts/SignInRequiredDialog';
 import { useBowlingGame } from '../hooks/useBowlingGame';
 import { useUserStats } from '@/hooks/useUserStats';
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +22,8 @@ const BowlingScorecard = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const { toast } = useToast();
   const { updateUserStats } = useUserStats();
+  const [showSignInDialog, setShowSignInDialog] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   
   // Flow state management (only for authenticated users)
   const [flowState, setFlowState] = useState<FlowState>({
@@ -78,12 +83,7 @@ const BowlingScorecard = () => {
 
   const handleSaveGames = async () => {
     if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to save your games.",
-        variant: "destructive",
-        duration: 3000,
-      });
+      setShowSignInDialog(true);
       return;
     }
     
@@ -148,16 +148,6 @@ const BowlingScorecard = () => {
     }
   };
 
-  // Handle edit for non-authenticated users
-  const handleEditGame = (gameId: number) => {
-    setActiveGameId(gameId);
-    // Set editing to frame 10 (index 9), ball 0
-    updateActiveGame({
-      editingFrame: 9,
-      editingBall: 0
-    });
-  };
-
   // Handle delete for non-authenticated users
   const handleDeleteGame = (gameId: number) => {
     deleteGame(activeSessionId, gameId);
@@ -174,13 +164,30 @@ const BowlingScorecard = () => {
   const visibleGames = activeSession?.games.filter(game => game.isVisible) || [];
   const activeGameIndex = visibleGames.findIndex(g => g.id === activeGameId);
 
+  const handleOpenAuthModal = () => {
+    setShowSignInDialog(false);
+    setIsAuthModalOpen(true);
+  };
+
   return (
     <div className="max-w-[1200px] mx-auto p-5 min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 font-sans">
-      <Header onSaveGames={handleSaveGames} hasUnsavedGames={false} />
+      <Header 
+        onSaveGames={handleSaveGames} 
+        hasUnsavedGames={hasUnsavedGames} 
+        onAddGame={addGameToSession}
+        isAuthenticated={isAuthenticated}
+        setIsAuthModalOpen={setIsAuthModalOpen}
+      />
       
       <SaveGameAlert 
         showSuccess={showSaveSuccess} 
         errorMessage={saveError} 
+      />
+      
+      <SignInRequiredDialog 
+        isOpen={showSignInDialog} 
+        onClose={() => setShowSignInDialog(false)} 
+        onSignIn={handleOpenAuthModal}
       />
       
       {isAuthenticated ? (
@@ -285,6 +292,11 @@ const BowlingScorecard = () => {
           )}
         </div>
       )}
+      
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </div>
   );
 };
