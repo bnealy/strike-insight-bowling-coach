@@ -3,10 +3,10 @@ import React, { useState, useEffect, CSSProperties } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
 import BowlingGame from './BowlingGame';
-import PinButtons from './PinButtons';
+import SaveGameAlert from './alerts/SaveGameAlert';
+import PageHeader from './PageHeader';
+import GameEditorPanel from './GameEditorPanel';
 import { useBowlingGame } from '../hooks/useBowlingGame';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, XCircle } from "lucide-react";
 
 // Helper function to add proper type assertions for CSS properties
 const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => props as unknown as CSSProperties;
@@ -30,6 +30,7 @@ const BowlingScorecard = () => {
   } = useBowlingGame();
   
   const { frames, currentFrame, currentBall, gameComplete, editingFrame, editingBall } = activeGame;
+  const activeGameIndex = games.findIndex(g => g.id === activeGameId);
 
   const handleSaveGames = async () => {
     if (!isAuthenticated) return;
@@ -62,30 +63,15 @@ const BowlingScorecard = () => {
     })}>
       <Header onSaveGames={handleSaveGames} hasUnsavedGames={isAuthenticated && hasUnsavedGames} />
       
-      {showSaveSuccess && (
-        <Alert className="mb-5 bg-green-50 border-green-500">
-          <CheckCircle className="h-5 w-5 text-green-500" />
-          <AlertTitle>Success!</AlertTitle>
-          <AlertDescription>
-            Games saved successfully to your profile!
-          </AlertDescription>
-        </Alert>
-      )}
+      <SaveGameAlert 
+        showSuccess={showSaveSuccess} 
+        errorMessage={saveError} 
+      />
       
-      {saveError && (
-        <Alert className="mb-5 bg-red-50 border-red-500">
-          <XCircle className="h-5 w-5 text-red-500" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {saveError}
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <div style={cssProps({ textAlign: 'center', color: 'white', marginBottom: '30px' })}>
-        <h1 style={cssProps({ fontSize: '2.5em', marginBottom: '10px' })}>Bowling Score Calculator</h1>
-        <p>Enter your pins knocked down for each ball</p>
-      </div>
+      <PageHeader 
+        title="Bowling Score Calculator" 
+        subtitle="Enter your pins knocked down for each ball" 
+      />
       
       {games.map((game, gameIndex) => (
         <BowlingGame
@@ -102,74 +88,19 @@ const BowlingScorecard = () => {
         />
       ))}
       
-      <div style={cssProps({
-        background: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '15px',
-        padding: '20px',
-        textAlign: 'center'
-      })}>
-        {(!gameComplete || editingFrame !== null) && (
-          <>
-            <div style={cssProps({
-              color: 'white',
-              marginBottom: '20px',
-              fontSize: '1.2em'
-            })}>
-              {editingFrame !== null && editingBall !== null ? (
-                <>
-                  Editing Game {games.findIndex(g => g.id === activeGameId) + 1}, Frame {editingFrame + 1}, Ball {editingBall + 1}
-                  <button 
-                    onClick={cancelEdit}
-                    style={cssProps({
-                      marginLeft: '15px',
-                      padding: '5px 10px',
-                      background: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '5px',
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    })}
-                  >
-                    Cancel Edit
-                  </button>
-                </>
-              ) : gameComplete ? (
-                "Click any ball to edit"
-              ) : (
-                `Game ${games.findIndex(g => g.id === activeGameId) + 1} - Frame ${currentFrame + 1}, Ball ${currentBall + 1}`
-              )}
-            </div>
-            
-            <PinButtons
-              activeFrame={editingFrame !== null ? editingFrame : currentFrame}
-              activeBall={editingBall !== null ? editingBall : currentBall}
-              frames={frames}
-              enterPins={enterPins}
-            />
-          </>
-        )}
-        
-        <div style={cssProps({ display: 'flex', gap: '10px', justifyContent: 'center' })}>
-          {games.length < 2 && (
-            <button 
-              onClick={addAnotherGame}
-              style={cssProps({
-                background: '#28a745',
-                color: 'white',
-                border: 'none',
-                padding: '15px 30px',
-                borderRadius: '25px',
-                fontSize: '16px',
-                cursor: 'pointer'
-              })}
-            >
-              Add Another Game
-            </button>
-          )}
-        </div>
-      </div>
+      <GameEditorPanel
+        gameIndex={activeGameIndex}
+        currentFrame={currentFrame}
+        currentBall={currentBall}
+        frames={frames}
+        editingFrame={editingFrame}
+        editingBall={editingBall}
+        gameComplete={gameComplete}
+        enterPins={enterPins}
+        cancelEdit={cancelEdit}
+        addAnotherGame={addAnotherGame}
+        gameCount={games.length}
+      />
     </div>
   );
 };
