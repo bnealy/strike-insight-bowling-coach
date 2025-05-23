@@ -19,6 +19,13 @@ const Header = ({ onSaveGames, hasUnsavedGames }) => {
     setShowUserMenu(false);
   };
 
+  // For debugging purposes
+  console.log('Header render - isAuthenticated:', isAuthenticated);
+  console.log('Header render - user:', user);
+
+  // Extract display name with fallbacks
+  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+
   const headerStyles = {
     header: {
       background: 'rgba(255, 255, 255, 0.1)',
@@ -150,7 +157,7 @@ const Header = ({ onSaveGames, hasUnsavedGames }) => {
                     e.target.style.backgroundColor = 'transparent';
                   }}
                 >
-                  Welcome, {user.name}! ▼
+                  Welcome, {displayName}! ▼
                 </div>
                 
                 {showUserMenu && (

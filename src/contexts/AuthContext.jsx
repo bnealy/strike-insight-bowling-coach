@@ -49,8 +49,16 @@ export const AuthProvider = ({ children }) => {
 
         if (existingSession) {
           console.log('Found existing session:', existingSession.user.email);
+          console.log('User data:', JSON.stringify(existingSession.user));
           setSession(existingSession);
-          setUser(existingSession.user);
+          
+          // Extract user data with proper name mapping
+          const userData = {
+            ...existingSession.user,
+            name: existingSession.user.user_metadata?.name || existingSession.user.email?.split('@')[0] || 'User'
+          };
+          console.log('Mapped user data:', JSON.stringify(userData));
+          setUser(userData);
         } else {
           console.log('No existing session found');
         }
@@ -67,13 +75,24 @@ export const AuthProvider = ({ children }) => {
       console.log('Auth state changed:', event);
       
       setSession(currentSession);
-      setUser(currentSession?.user || null);
+      
+      if (currentSession?.user) {
+        // Extract user data with proper name mapping
+        const userData = {
+          ...currentSession.user,
+          name: currentSession.user.user_metadata?.name || currentSession.user.email?.split('@')[0] || 'User'
+        };
+        console.log('Setting user with mapped data:', JSON.stringify(userData));
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
       
       if (event === 'SIGNED_IN') {
         console.log('User signed in:', currentSession?.user?.email);
         toast({
           title: "Successfully signed in",
-          description: `Welcome ${currentSession?.user?.email || 'back'}!`,
+          description: `Welcome ${currentSession?.user?.user_metadata?.name || currentSession?.user?.email?.split('@')[0] || 'back'}!`,
         });
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out');
@@ -122,6 +141,7 @@ export const AuthProvider = ({ children }) => {
         }
         
         console.log('Login successful:', data.user.email);
+        console.log('User data after login:', JSON.stringify(data.user));
         return { success: true };
       } catch (error) {
         console.error('Unexpected login error:', error);
@@ -162,6 +182,7 @@ export const AuthProvider = ({ children }) => {
         
         if (data?.user) {
           console.log('Registration successful:', data.user.email);
+          console.log('User metadata:', JSON.stringify(data.user.user_metadata));
           
           // Create profile in bowlerprofiles table with 250ms delay to ensure auth is settled
           setTimeout(async () => {
@@ -177,13 +198,11 @@ export const AuthProvider = ({ children }) => {
                 
               if (profileError) {
                 console.error('Error creating bowler profile:', profileError);
-                console.error('Full error details:', JSON.stringify(profileError, null, 2));
               } else {
                 console.log('Bowler profile created successfully');
               }
             } catch (profileErr) {
               console.error('Unexpected error creating bowler profile:', profileErr);
-              console.error('Full error details:', JSON.stringify(profileErr, null, 2));
             }
           }, 250);
           
