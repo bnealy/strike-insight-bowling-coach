@@ -35,7 +35,7 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
   onSaveGames
 }) => {
   const isEditing = editingFrame !== null && editingBall !== null;
-
+  
   return (
     <div className="bg-white bg-opacity-10 p-6 rounded-lg backdrop-filter backdrop-blur-md">
       <h3 className="text-lg font-bold text-white mb-4">
