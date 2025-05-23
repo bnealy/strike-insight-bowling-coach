@@ -26,14 +26,12 @@ const PinButtons: React.FC<PinButtonsProps> = ({
   gameComplete
 }) => {
   const getMaxPins = (): number => {
-    // If game is complete, return -1 to show no pins
-    if (gameComplete) return -1;
-    
     // Use editing frame/ball if in edit mode, otherwise use current frame/ball
     const targetFrame = editingFrame !== null ? editingFrame : currentFrame;
     const targetBall = editingBall !== null ? editingBall : currentBall;
     
-    if (targetFrame >= 10 || targetBall >= 3) return -1;
+    // If not in edit mode and no valid target, return -1
+    if (editingFrame === null && (targetFrame >= 10 || targetBall >= 3)) return -1;
     
     let maxPins = 10;
     
@@ -67,7 +65,7 @@ const PinButtons: React.FC<PinButtonsProps> = ({
   const renderButtons = () => {
     const maxPins = getMaxPins();
     
-    // Don't render any buttons if maxPins is -1 (game complete or invalid frame/ball)
+    // Don't render any buttons if maxPins is -1 (invalid frame/ball and not in edit mode)
     if (maxPins < 0) {
       return null;
     }

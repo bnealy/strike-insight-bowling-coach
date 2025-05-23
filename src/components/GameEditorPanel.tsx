@@ -36,38 +36,20 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
 }) => {
   const isEditing = editingFrame !== null && editingBall !== null;
   
-  // Add debugging for game completion
-  console.log('GameEditorPanel - gameComplete:', gameComplete, 'frames[9]:', frames[9]);
-  
   return (
     <div className="bg-white bg-opacity-10 p-6 rounded-lg backdrop-filter backdrop-blur-md">
       <h3 className="text-lg font-bold text-white mb-4">
         Game {gameIndex + 1} Editor
       </h3>
       
-      {gameComplete ? (
-        <div className="mb-4 text-white text-center">
-          <p className="text-xl font-bold mb-2">🎉 Congratulations! 🎉</p>
-          <p className="text-lg">Game Complete!</p>
-          <p className="text-md">Final Score: {frames[9]?.score || 'N/A'}</p>
-        </div>
-      ) : (
+      {isEditing && (
         <div className="mb-4">
-          <p className="text-white mb-2">
-            {isEditing 
-              ? `Editing Frame ${editingFrame! + 1}, Ball ${editingBall! + 1}`
-              : `Current: Frame ${currentFrame + 1}, Ball ${currentBall + 1}`
-            }
-          </p>
-          
-          {isEditing && (
-            <button
-              onClick={cancelEdit}
-              className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors mb-3"
-            >
-              Cancel Edit
-            </button>
-          )}
+          <button
+            onClick={cancelEdit}
+            className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors mb-3"
+          >
+            Cancel Edit
+          </button>
         </div>
       )}
       
@@ -78,7 +60,7 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
         frames={frames}
         editingFrame={editingFrame}
         editingBall={editingBall}
-        gameComplete={gameComplete}
+        gameComplete={false}
       />
 
       <div className="flex justify-center items-center gap-4 mt-6">
