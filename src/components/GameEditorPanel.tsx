@@ -1,8 +1,7 @@
 
 import React from 'react';
-import PinButtons from './PinButtons';
 import { Frame } from '../types/bowlingTypes';
-import { Button } from './ui/button';
+import PinButtons from './PinButtons';
 
 interface GameEditorPanelProps {
   gameIndex: number;
@@ -16,6 +15,8 @@ interface GameEditorPanelProps {
   cancelEdit: () => void;
   addAnotherGame: () => void;
   gameCount: number;
+  showSaveButton?: boolean;
+  onSaveGames?: () => void;
 }
 
 const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
@@ -28,48 +29,65 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
   gameComplete,
   enterPins,
   cancelEdit,
-  addAnotherGame
+  addAnotherGame,
+  gameCount,
+  showSaveButton = false,
+  onSaveGames
 }) => {
+  const isEditing = editingFrame !== null && editingBall !== null;
+
   return (
-    <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-lg p-5 text-center">
-      {(!gameComplete || editingFrame !== null) && (
-        <>
-          <div className="text-white mb-5 text-lg">
-            {editingFrame !== null && editingBall !== null ? (
-              <>
-                Editing Game {gameIndex + 1}, Frame {editingFrame + 1}, Ball {editingBall + 1}
-                <Button 
-                  onClick={cancelEdit}
-                  variant="secondary"
-                  className="ml-4 px-3 py-1 text-sm"
-                >
-                  Cancel Edit
-                </Button>
-              </>
-            ) : gameComplete ? (
-              "Click any ball to edit"
-            ) : (
-              `Game ${gameIndex + 1} - Frame ${currentFrame + 1}, Ball ${currentBall + 1}`
-            )}
-          </div>
+    <div className="bg-white bg-opacity-10 p-6 rounded-lg backdrop-filter backdrop-blur-md">
+      <h3 className="text-lg font-bold text-white mb-4">
+        Game {gameIndex + 1} Editor
+      </h3>
+      
+      {!gameComplete && (
+        <div className="mb-4">
+          <p className="text-white mb-2">
+            {isEditing 
+              ? `Editing Frame ${editingFrame! + 1}, Ball ${editingBall! + 1}`
+              : `Current: Frame ${currentFrame + 1}, Ball ${currentBall + 1}`
+            }
+          </p>
           
-          <PinButtons
-            activeFrame={editingFrame !== null ? editingFrame : currentFrame}
-            activeBall={editingBall !== null ? editingBall : currentBall}
-            frames={frames}
-            enterPins={enterPins}
-          />
-        </>
+          {isEditing && (
+            <button
+              onClick={cancelEdit}
+              className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors mb-3"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
       )}
       
-      <div className="flex gap-4 justify-center mt-5">
-        <Button 
+      <PinButtons 
+        onPinClick={enterPins}
+        currentFrame={currentFrame}
+        currentBall={currentBall}
+        frames={frames}
+        editingFrame={editingFrame}
+        editingBall={editingBall}
+        gameComplete={gameComplete}
+      />
+
+      <div className="flex justify-center items-center gap-4 mt-6">
+        <button
           onClick={addAnotherGame}
-          className="bg-gradient-to-r from-green-400 to-green-600 text-white py-3 px-6 rounded-full text-lg font-medium hover:from-green-500 hover:to-green-700 transition-all shadow-lg"
-          disabled={addAnotherGame === (() => {})}
+          className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
         >
           Add Another Game
-        </Button>
+        </button>
+        
+        {showSaveButton && onSaveGames && (
+          <button
+            onClick={onSaveGames}
+            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-4 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
+          >
+            Save Games
+          </button>
+        )}
       </div>
     </div>
   );

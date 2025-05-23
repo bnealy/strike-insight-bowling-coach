@@ -21,6 +21,8 @@ interface GameEntryScreenProps {
   enterPins: (pins: number) => void;
   cancelEdit: () => void;
   addGameToSession: () => void;
+  hasUnsavedGames: boolean;
+  onSaveGames: () => void;
 }
 
 const GameEntryScreen: React.FC<GameEntryScreenProps> = ({ 
@@ -36,7 +38,9 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   toggleGameVisibility,
   enterPins,
   cancelEdit,
-  addGameToSession
+  addGameToSession,
+  hasUnsavedGames,
+  onSaveGames
 }) => {
   // Find the active game
   const activeGame = games.find(game => game.id === activeGameId);
@@ -77,15 +81,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
             <p>No visible games in this session. Add a game to get started.</p>
           </div>
         )}
-        
-        {visibleGames.length < gameCount && (
-          <button 
-            onClick={addGameToSession}
-            className="mt-4 bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
-          >
-            Add Game ({visibleGames.length}/{gameCount})
-          </button>
-        )}
       </div>
       
       {activeGame && (
@@ -101,6 +96,8 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
           cancelEdit={cancelEdit}
           addAnotherGame={visibleGames.length < gameCount ? addGameToSession : () => {}}
           gameCount={gameCount}
+          showSaveButton={hasUnsavedGames}
+          onSaveGames={onSaveGames}
         />
       )}
       

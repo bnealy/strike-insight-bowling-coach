@@ -28,17 +28,6 @@ const Header = ({ onSaveGames, hasUnsavedGames }) => {
         <h1 className="text-2xl font-bold text-white m-0">🎳 BowlTracker</h1>
         
         <div className="flex items-center gap-4">
-          {isAuthenticated && hasUnsavedGames && (
-            <button
-              onClick={handleSaveGames}
-              className="relative bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
-            >
-              <Save size={18} />
-              <span>Save Games</span>
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-            </button>
-          )}
-          
           {isAuthenticated ? (
             <UserMenu 
               user={user} 

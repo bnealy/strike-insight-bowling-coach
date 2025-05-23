@@ -154,7 +154,7 @@ const BowlingScorecard = () => {
 
   return (
     <div className="max-w-[1200px] mx-auto p-5 min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 font-sans">
-      <Header onSaveGames={handleSaveGames} hasUnsavedGames={isAuthenticated && hasUnsavedGames} />
+      <Header onSaveGames={handleSaveGames} hasUnsavedGames={false} />
       
       <SaveGameAlert 
         showSuccess={showSaveSuccess} 
@@ -192,6 +192,8 @@ const BowlingScorecard = () => {
               cancelEdit={cancelEdit}
               addGameToSession={addGameToSession}
               onBack={handlePreviousStep}
+              hasUnsavedGames={hasUnsavedGames}
+              onSaveGames={handleSaveGames}
             />
           )}
         </>
@@ -225,13 +227,6 @@ const BowlingScorecard = () => {
                 <p>No games in this session. Add a game to get started.</p>
               </div>
             )}
-            
-            <button 
-              onClick={addGameToSession}
-              className="mt-4 bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
-            >
-              Add Game
-            </button>
           </div>
           
           {activeGame && (
@@ -247,6 +242,8 @@ const BowlingScorecard = () => {
               cancelEdit={cancelEdit}
               addAnotherGame={addGameToSession}
               gameCount={1}
+              showSaveButton={true}
+              onSaveGames={handleSaveGames}
             />
           )}
         </div>
