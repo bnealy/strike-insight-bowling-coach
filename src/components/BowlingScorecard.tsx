@@ -40,7 +40,8 @@ const BowlingScorecard = () => {
     markSessionAsSaved,
     toggleSessionVisibility,
     toggleGameVisibility,
-    renameSession
+    renameSession,
+    updateUserStats
   } = useBowlingGame();
   
   // Navigation handlers for the flow
@@ -115,6 +116,13 @@ const BowlingScorecard = () => {
           description: "Games saved successfully!",
           duration: 3000,
         });
+        
+        // Update user statistics with completed games
+        const completedGames = validSessions.flatMap(s => 
+          s.games.filter(g => g.isVisible && g.gameComplete && g.totalScore != null)
+        );
+        await updateUserStats(completedGames);
+        
         setTimeout(() => setShowSaveSuccess(false), 5000);
         
         // After successful save, return to welcome step for a fresh start

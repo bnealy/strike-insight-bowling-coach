@@ -148,6 +148,42 @@ export type Database = {
           },
         ]
       }
+      user_bowling_stats: {
+        Row: {
+          average_score: number
+          games_played: number
+          highest_score: number | null
+          id: string
+          lowest_score: number | null
+          total_spares: number
+          total_strikes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_score?: number
+          games_played?: number
+          highest_score?: number | null
+          id?: string
+          lowest_score?: number | null
+          total_spares?: number
+          total_strikes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_score?: number
+          games_played?: number
+          highest_score?: number | null
+          id?: string
+          lowest_score?: number | null
+          total_spares?: number
+          total_strikes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

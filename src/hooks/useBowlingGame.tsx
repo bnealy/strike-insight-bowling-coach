@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Game, Frame, SaveGameResult } from '../types/bowlingTypes';
 import { calculateScoresForGame } from '../utils/bowlingScoreUtils';
@@ -6,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface BowlingSession {
   id: number;
@@ -28,7 +28,8 @@ export const useBowlingGame = () => {
   
   const [activeSessionId, setActiveSessionId] = useState<number>(1);
   const [activeGameId, setActiveGameId] = useState<number>(1);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const queryClient = useQueryClient();
   
   // Find the active session and game
   const activeSession = sessions.find(session => session.id === activeSessionId) || sessions[0];
@@ -406,6 +407,123 @@ export const useBowlingGame = () => {
     session.isVisible && !session.savedToDatabase
   );
 
+  // New function to update user stats when games are saved
+  const updateUserStats = async (completedGames: Game[]) => {
+    if (!isAuthenticated || !user?.id || completedGames.length === 0) {
+      return;
+    }
+    
+    try {
+      // Count strikes and spares
+      let totalStrikes = 0;
+      let totalSpares = 0;
+      
+      completedGames.forEach(game => {
+        game.frames.forEach((frame, index) => {
+          // Count strikes
+          if (frame.balls[0] === 10) {
+            totalStrikes++;
+          } 
+          // Count spares (not counting after a strike)
+          else if (frame.balls[0] !== null && frame.balls[1] !== null && 
+                  frame.balls[0]! + frame.balls[1]! === 10) {
+            totalSpares++;
+          }
+          
+          // Special case for 10th frame
+          if (index === 9) {
+            // Count additional strike in 10th frame second ball
+            if (frame.balls[1] === 10) {
+              totalStrikes++;
+            }
+            // Count additional strike in 10th frame third ball
+            if (frame.balls[2] === 10) {
+              totalStrikes++;
+            }
+            // Count spare in 10th frame if first two balls make 10 (and first wasn't a strike)
+            if (frame.balls[0] !== 10 && frame.balls[0] !== null && frame.balls[1] !== null && 
+                frame.balls[0]! + frame.balls[1]! === 10) {
+              totalSpares++;
+            }
+          }
+        });
+      });
+      
+      // Calculate score metrics
+      const scores = completedGames.map(game => game.totalScore || 0);
+      const totalScore = scores.reduce((sum, score) => sum + score, 0);
+      const averageScore = totalScore / scores.length;
+      const highestScore = Math.max(...scores);
+      const lowestScore = Math.min(...scores);
+      
+      // Get current stats
+      const { data: currentStats, error: fetchError } = await supabase
+        .from('user_bowling_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') { // Not found error
+        console.error('Error fetching user stats:', fetchError);
+        return;
+      }
+      
+      // If we have stats, update them
+      if (currentStats) {
+        const updatedStats = {
+          games_played: currentStats.games_played + completedGames.length,
+          average_score: ((currentStats.average_score * currentStats.games_played) + totalScore) / 
+                          (currentStats.games_played + completedGames.length),
+          highest_score: currentStats.highest_score ? 
+                          Math.max(currentStats.highest_score, highestScore) : 
+                          highestScore,
+          lowest_score: currentStats.lowest_score ? 
+                          Math.min(currentStats.lowest_score, lowestScore) : 
+                          lowestScore,
+          total_strikes: currentStats.total_strikes + totalStrikes,
+          total_spares: currentStats.total_spares + totalSpares,
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: updateError } = await supabase
+          .from('user_bowling_stats')
+          .update(updatedStats)
+          .eq('user_id', user.id);
+          
+        if (updateError) {
+          console.error('Error updating user stats:', updateError);
+          return;
+        }
+      } else {
+        // Create new stats record if none exists
+        const newStats = {
+          user_id: user.id,
+          games_played: completedGames.length,
+          average_score: averageScore,
+          highest_score: highestScore,
+          lowest_score: lowestScore,
+          total_strikes: totalStrikes,
+          total_spares: totalSpares
+        };
+        
+        const { error: insertError } = await supabase
+          .from('user_bowling_stats')
+          .insert([newStats]);
+          
+        if (insertError) {
+          console.error('Error creating user stats:', insertError);
+          return;
+        }
+      }
+      
+      // Invalidate the stats query to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['userStats'] });
+      
+    } catch (error) {
+      console.error('Unexpected error updating user stats:', error);
+    }
+  };
+
   const fetchUserGames = async () => {
     if (!isAuthenticated) return;
     
@@ -447,6 +565,7 @@ export const useBowlingGame = () => {
     renameSession,
     markSessionAsSaved,
     hasUnsavedGames,
-    fetchUserGames
+    fetchUserGames,
+    updateUserStats
   };
 };

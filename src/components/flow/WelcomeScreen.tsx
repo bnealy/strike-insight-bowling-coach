@@ -3,14 +3,18 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { BowlingFlowStep } from '@/types/flowTypes';
+import UserStatistics from './UserStatistics';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WelcomeScreenProps {
   onNext: (nextStep: BowlingFlowStep) => void;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext }) => {
+  const { isAuthenticated } = useAuth();
+  
   return (
-    <div className="flex justify-center items-center min-h-[70vh] w-full">
+    <div className="flex flex-col justify-center items-center min-h-[70vh] w-full space-y-6">
       <Card className="w-full max-w-md bg-white bg-opacity-95 shadow-xl">
         <CardHeader>
           <CardTitle className="text-3xl font-bold text-center">Welcome to BowlTracker</CardTitle>
@@ -35,6 +39,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext }) => {
           </Button>
         </CardFooter>
       </Card>
+      
+      {isAuthenticated && (
+        <div className="w-full max-w-md">
+          <UserStatistics />
+        </div>
+      )}
     </div>
   );
 };
