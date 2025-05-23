@@ -52,7 +52,7 @@ export const useBowlingGame = () => {
       frames: initialFrames,
       currentFrame: 0,
       currentBall: 0,
-      totalScore: 0,
+      totalScore: 0, // Initialize to 0 instead of null/undefined
       gameComplete: false,
       editingFrame: null,
       editingBall: null,
@@ -90,7 +90,7 @@ export const useBowlingGame = () => {
     ) {
       updateActiveGame({
         frames: updatedGame.frames,
-        totalScore: updatedGame.totalScore,
+        totalScore: updatedGame.totalScore || 0, // Ensure we never set null/undefined
         gameComplete: updatedGame.gameComplete
       });
     }
@@ -448,6 +448,7 @@ export const useBowlingGame = () => {
   };
 
   const handleSaveGames = async () => {
+    console.log('Attempting to save games for user:', user?.id);
     await saveSessionsToDatabase(sessions, markSessionAsSaved);
   };
 

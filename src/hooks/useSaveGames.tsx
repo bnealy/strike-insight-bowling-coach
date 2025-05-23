@@ -40,6 +40,8 @@ export const useSaveGames = () => {
         
         if (visibleGames.length === 0) continue;
 
+        console.log('Attempting to save session:', session.title, 'with games:', visibleGames.length);
+
         // Create session in database
         const { data: sessionData, error: sessionError } = await supabase
           .from('bowling_game_sessions')
@@ -56,24 +58,29 @@ export const useSaveGames = () => {
           throw sessionError;
         }
 
-        console.log('Session saved:', sessionData);
+        console.log('Created game session:', sessionData);
 
         // Save all games in this session
         for (const game of visibleGames) {
+          console.log('Saving game:', game.id, 'with total score:', game.totalScore);
+          
+          // Ensure total_score is never null - use 0 as default
+          const totalScore = game.totalScore ?? 0;
+          
           // Insert game
           const { data: gameData, error: gameError } = await supabase
             .from('bowling_games')
             .insert([{
               session_id: sessionData.id,
               game_number: game.id,
-              total_score: game.totalScore || 0,
-              is_complete: game.gameComplete
+              total_score: totalScore,
+              is_complete: game.gameComplete || false
             }])
             .select()
             .single();
 
           if (gameError) {
-            console.error('Error saving game:', gameError);
+            console.error('Error saving game:', game.id, gameError);
             throw gameError;
           }
 
@@ -101,14 +108,9 @@ export const useSaveGames = () => {
           console.log('Frames saved for game:', gameData.id);
         }
 
-        // TEMPORARILY DISABLED: Update user stats with completed games
-        // const completedGames = visibleGames.filter(game => game.gameComplete);
-        // if (completedGames.length > 0) {
-        //   await updateUserStats(completedGames);
-        // }
-
         // Mark session as saved
         markSessionAsSaved(session.id);
+        console.log('Session marked as saved:', session.id);
       }
 
       toast({
