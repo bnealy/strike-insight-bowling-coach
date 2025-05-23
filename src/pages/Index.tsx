@@ -1,13 +1,9 @@
 
 // src/pages/Index.tsx
-import BowlingScorecard from '../components/BowlingScorecard';
+import App from '../App';
 
 const Index = () => {
-  return (
-    <div className="App">
-      <BowlingScorecard />
-    </div>
-  );
+  return <App />;
 };
 
 export default Index;

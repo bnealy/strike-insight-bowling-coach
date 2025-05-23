@@ -4,16 +4,32 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
 const AuthModal = ({ isOpen, onClose }) => {
+  // State variables
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+  });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Get auth methods
   const { login, register } = useAuth();
 
+  // Don't render if modal is closed
   if (!isOpen) return null;
 
+  // Form input change handler
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  // Form submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -23,8 +39,10 @@ const AuthModal = ({ isOpen, onClose }) => {
       console.log(`Submitting ${isLoginMode ? 'login' : 'registration'} form`);
       
       if (isLoginMode) {
-        console.log('Attempting login with email:', email);
-        const result = await login(email, password);
+        // Login flow
+        console.log('Attempting login with email:', formData.email);
+        const result = await login(formData.email, formData.password);
+        
         if (result.success) {
           console.log('Login successful, closing modal');
           onClose();
@@ -38,15 +56,17 @@ const AuthModal = ({ isOpen, onClose }) => {
           });
         }
       } else {
-        if (!name.trim()) {
+        // Registration flow
+        if (!formData.name.trim()) {
           console.error('Registration failed: Name is required');
           setError('Name is required');
           setIsSubmitting(false);
           return;
         }
         
-        console.log('Attempting registration with email:', email);
-        const result = await register(name, email, password);
+        console.log('Attempting registration with email:', formData.email);
+        const result = await register(formData.name, formData.email, formData.password);
+        
         if (result.success) {
           console.log('Registration successful, closing modal');
           onClose();
@@ -77,7 +97,8 @@ const AuthModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const modalStyles = {
+  // Modal styles
+  const styles = {
     overlay: {
       position: 'fixed',
       top: 0,
@@ -175,18 +196,18 @@ const AuthModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div style={modalStyles.overlay}>
-      <div style={modalStyles.modal}>
-        <button style={modalStyles.closeButton} onClick={onClose}>✖</button>
+    <div style={styles.overlay}>
+      <div style={styles.modal}>
+        <button style={styles.closeButton} onClick={onClose}>✖</button>
         
-        <div style={modalStyles.header}>
-          <h2 style={modalStyles.title}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>
             {isLoginMode ? 'Sign In' : 'Create Account'}
           </h2>
-          <div style={modalStyles.toggleText}>
+          <div style={styles.toggleText}>
             {isLoginMode ? "Don't have an account? " : "Already have an account? "}
             <button 
-              style={modalStyles.toggleButton}
+              style={styles.toggleButton}
               onClick={() => {
                 setError('');
                 setIsLoginMode(!isLoginMode);
@@ -198,20 +219,21 @@ const AuthModal = ({ isOpen, onClose }) => {
         </div>
         
         {error && (
-          <div style={modalStyles.errorMessage}>
+          <div style={styles.errorMessage}>
             {error}
           </div>
         )}
         
-        <form style={modalStyles.form} onSubmit={handleSubmit}>
+        <form style={styles.form} onSubmit={handleSubmit}>
           {!isLoginMode && (
-            <div style={modalStyles.formGroup}>
-              <label style={modalStyles.label}>Name</label>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Name</label>
               <input
                 type="text"
-                style={modalStyles.input}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                name="name"
+                style={styles.input}
+                value={formData.name}
+                onChange={handleInputChange}
                 placeholder="Your name"
                 required
                 disabled={isSubmitting}
@@ -219,26 +241,28 @@ const AuthModal = ({ isOpen, onClose }) => {
             </div>
           )}
           
-          <div style={modalStyles.formGroup}>
-            <label style={modalStyles.label}>Email</label>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Email</label>
             <input
               type="email"
-              style={modalStyles.input}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              style={styles.input}
+              value={formData.email}
+              onChange={handleInputChange}
               placeholder="email@example.com"
               required
               disabled={isSubmitting}
             />
           </div>
           
-          <div style={modalStyles.formGroup}>
-            <label style={modalStyles.label}>Password</label>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Password</label>
             <input
               type="password"
-              style={modalStyles.input}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              style={styles.input}
+              value={formData.password}
+              onChange={handleInputChange}
               placeholder="••••••••"
               required
               disabled={isSubmitting}
@@ -246,11 +270,11 @@ const AuthModal = ({ isOpen, onClose }) => {
             />
           </div>
           
-          <div style={modalStyles.buttonContainer}>
+          <div style={styles.buttonContainer}>
             <button 
               type="submit" 
               style={{
-                ...modalStyles.submitButton,
+                ...styles.submitButton,
                 opacity: isSubmitting ? 0.7 : 1,
                 cursor: isSubmitting ? 'not-allowed' : 'pointer'
               }}
