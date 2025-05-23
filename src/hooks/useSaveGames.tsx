@@ -44,7 +44,8 @@ export const useSaveGames = () => {
           id: g.id, 
           totalScore: g.totalScore, 
           gameComplete: g.gameComplete,
-          resolvedScore: Number(g.totalScore) || 0
+          totalScoreType: typeof g.totalScore,
+          totalScoreValue: g.totalScore
         })));
 
         // Create session in database with the correct total_games count (all visible games)
@@ -69,10 +70,15 @@ export const useSaveGames = () => {
         for (const game of visibleGames) {
           console.log('Saving game:', game.id, 'with total score:', game.totalScore, 'complete:', game.gameComplete);
           
-          // Ensure total_score is never null/undefined - use 0 as default and ensure it's a number
-          const totalScore = Number(game.totalScore) || 0;
+          // Ensure total_score is always a valid integer
+          let totalScore = 0;
+          if (typeof game.totalScore === 'number' && !isNaN(game.totalScore)) {
+            totalScore = Math.floor(game.totalScore);
+          } else if (typeof game.totalScore === 'string' && !isNaN(parseFloat(game.totalScore))) {
+            totalScore = Math.floor(parseFloat(game.totalScore));
+          }
           
-          console.log('Resolved total score to:', totalScore);
+          console.log('Final resolved total score:', totalScore, 'from original:', game.totalScore);
           
           // Insert game
           const { data: gameData, error: gameError } = await supabase
