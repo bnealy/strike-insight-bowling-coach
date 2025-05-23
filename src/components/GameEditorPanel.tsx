@@ -1,10 +1,7 @@
 
-import React, { CSSProperties } from 'react';
+import React from 'react';
 import PinButtons from './PinButtons';
 import { Frame } from '../types/bowlingTypes';
-
-// Helper function to add proper type assertions for CSS properties
-const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => props as unknown as CSSProperties;
 
 interface GameEditorPanelProps {
   gameIndex: number;
@@ -30,39 +27,19 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
   gameComplete,
   enterPins,
   cancelEdit,
-  addAnotherGame,
-  gameCount
+  addAnotherGame
 }) => {
   return (
-    <div style={cssProps({
-      background: 'rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '15px',
-      padding: '20px',
-      textAlign: 'center'
-    })}>
+    <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-lg p-5 text-center">
       {(!gameComplete || editingFrame !== null) && (
         <>
-          <div style={cssProps({
-            color: 'white',
-            marginBottom: '20px',
-            fontSize: '1.2em'
-          })}>
+          <div className="text-white mb-5 text-lg">
             {editingFrame !== null && editingBall !== null ? (
               <>
                 Editing Game {gameIndex + 1}, Frame {editingFrame + 1}, Ball {editingBall + 1}
                 <button 
                   onClick={cancelEdit}
-                  style={cssProps({
-                    marginLeft: '15px',
-                    padding: '5px 10px',
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  })}
+                  className="ml-4 px-3 py-1 bg-gray-500 text-white border-none rounded text-sm hover:bg-gray-600 transition-colors"
                 >
                   Cancel Edit
                 </button>
@@ -83,23 +60,13 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
         </>
       )}
       
-      <div style={cssProps({ display: 'flex', gap: '10px', justifyContent: 'center' })}>
-        {gameCount < 2 && (
-          <button 
-            onClick={addAnotherGame}
-            style={cssProps({
-              background: '#28a745',
-              color: 'white',
-              border: 'none',
-              padding: '15px 30px',
-              borderRadius: '25px',
-              fontSize: '16px',
-              cursor: 'pointer'
-            })}
-          >
-            Add Another Game
-          </button>
-        )}
+      <div className="flex gap-4 justify-center mt-5">
+        <button 
+          onClick={addAnotherGame}
+          className="bg-gradient-to-r from-green-400 to-green-600 text-white py-3 px-6 rounded-full text-lg font-medium hover:from-green-500 hover:to-green-700 transition-all shadow-lg"
+        >
+          Add Another Game
+        </button>
       </div>
     </div>
   );

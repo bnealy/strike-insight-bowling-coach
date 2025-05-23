@@ -1,12 +1,38 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Game, Frame } from '../types/bowlingTypes';
 import { calculateScoresForGame } from '../utils/bowlingScoreUtils';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../integrations/supabase/client';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from "@/hooks/use-toast";
+
+export interface BowlingSession {
+  id: number;
+  title: string;
+  games: Game[];
+  isVisible: boolean;
+  createdAt: Date;
+  savedToDatabase: boolean;
+}
 
 export const useBowlingGame = () => {
-  const [games, setGames] = useState<Game[]>(() => [createInitialGame(1)]);
-  const [activeGameId, setActiveGameId] = useState<number>(1);
+  const [sessions, setSessions] = useState<BowlingSession[]>(() => [{
+    id: 1,
+    title: 'New Session',
+    games: [createInitialGame(1)],
+    isVisible: true,
+    createdAt: new Date(),
+    savedToDatabase: false
+  }]);
   
-  const activeGame = games.find(game => game.id === activeGameId) || games[0];
+  const [activeSessionId, setActiveSessionId] = useState<number>(1);
+  const [activeGameId, setActiveGameId] = useState<number>(1);
+  const { isAuthenticated } = useAuth();
+  
+  // Find the active session and game
+  const activeSession = sessions.find(session => session.id === activeSessionId) || sessions[0];
+  const activeSessionGames = activeSession?.games || [];
+  const activeGame = activeSessionGames.find(game => game.id === activeGameId) || activeSessionGames[0];
 
   // Create initial game
   function createInitialGame(id: number): Game {
@@ -27,21 +53,33 @@ export const useBowlingGame = () => {
       totalScore: 0,
       gameComplete: false,
       editingFrame: null,
-      editingBall: null
+      editingBall: null,
+      isVisible: true
     };
   }
 
   const updateActiveGame = useCallback((updates: Partial<Game>) => {
-    setGames(prevGames => 
-      prevGames.map(game => 
-        game.id === activeGameId 
-          ? { ...game, ...updates }
-          : game
-      )
+    setSessions(prevSessions => 
+      prevSessions.map(session => {
+        if (session.id === activeSessionId) {
+          return {
+            ...session,
+            games: session.games.map(game => 
+              game.id === activeGameId 
+                ? { ...game, ...updates }
+                : game
+            ),
+            savedToDatabase: false // Mark as not saved when changes occur
+          };
+        }
+        return session;
+      })
     );
-  }, [activeGameId]);
+  }, [activeSessionId, activeGameId]);
 
   useEffect(() => {
+    if (!activeGame) return;
+    
     const updatedGame = calculateScoresForGame(activeGame);
     if (
       updatedGame.totalScore !== activeGame.totalScore || 
@@ -54,9 +92,11 @@ export const useBowlingGame = () => {
         gameComplete: updatedGame.gameComplete
       });
     }
-  }, [activeGame.frames, activeGameId, updateActiveGame]);
+  }, [activeGame?.frames, activeGameId, updateActiveGame]);
 
   const enterPins = (pins: number) => {
+    if (!activeGame) return;
+    
     const newFrames = [...activeGame.frames];
     let targetFrame: number, targetBall: number;
     
@@ -218,45 +258,84 @@ export const useBowlingGame = () => {
     }
   };
 
-  const addAnotherGame = () => {
-    if (games.length >= 2) return;
+  const addSession = () => {
+    const newSessionId = Math.max(...sessions.map(s => s.id)) + 1;
+    const newSession: BowlingSession = {
+      id: newSessionId,
+      title: `Session ${newSessionId}`,
+      games: [createInitialGame(1)],
+      isVisible: true,
+      createdAt: new Date(),
+      savedToDatabase: false
+    };
     
-    const newGameId = Math.max(...games.map(g => g.id)) + 1;
-    const newGame = createInitialGame(newGameId);
+    setSessions(prevSessions => [...prevSessions, newSession]);
+    setActiveSessionId(newSessionId);
+    setActiveGameId(1);
+  };
+
+  const addGameToSession = () => {
+    setSessions(prevSessions =>
+      prevSessions.map(session => {
+        if (session.id === activeSessionId) {
+          const newGameId = session.games.length > 0 ? 
+            Math.max(...session.games.map(g => g.id)) + 1 : 1;
+            
+          return {
+            ...session,
+            games: [...session.games, createInitialGame(newGameId)],
+            savedToDatabase: false
+          };
+        }
+        return session;
+      })
+    );
     
-    setGames(prevGames => [...prevGames, newGame]);
+    const newGameId = Math.max(...activeSession.games.map(g => g.id)) + 1;
     setActiveGameId(newGameId);
   };
 
-  const clearGame = (gameId: number) => {
-    const clearedFrames: Frame[] = [];
-    for (let i = 0; i < 10; i++) {
-      if (i === 9) {
-        clearedFrames.push({ balls: [null, null, null], score: null });
-      } else {
-        clearedFrames.push({ balls: [null, null], score: null });
-      }
-    }
-    
-    setGames(prevGames => 
-      prevGames.map(g => 
-        g.id === gameId 
-          ? {
-              ...g,
-              frames: clearedFrames,
-              currentFrame: 0,
-              currentBall: 0,
-              totalScore: 0,
-              gameComplete: false,
-              editingFrame: null,
-              editingBall: null
-            }
-          : g
-      )
+  const clearGame = (sessionId: number, gameId: number) => {
+    setSessions(prevSessions =>
+      prevSessions.map(session => {
+        if (session.id === sessionId) {
+          return {
+            ...session,
+            games: session.games.map(game => {
+              if (game.id === gameId) {
+                const clearedFrames: Frame[] = [];
+                for (let i = 0; i < 10; i++) {
+                  if (i === 9) {
+                    clearedFrames.push({ balls: [null, null, null], score: null });
+                  } else {
+                    clearedFrames.push({ balls: [null, null], score: null });
+                  }
+                }
+                
+                return {
+                  ...game,
+                  frames: clearedFrames,
+                  currentFrame: 0,
+                  currentBall: 0,
+                  totalScore: 0,
+                  gameComplete: false,
+                  editingFrame: null,
+                  editingBall: null
+                };
+              }
+              return game;
+            }),
+            savedToDatabase: false
+          };
+        }
+        return session;
+      })
     );
   };
 
   const handleBallClick = (frameIndex: number, ballIndex: number) => {
+    if (!activeGame) return;
+    
     if (activeGame.frames[frameIndex].balls[ballIndex] === null && 
         !(frameIndex === activeGame.currentFrame && ballIndex === activeGame.currentBall) &&
         !activeGame.gameComplete) {
@@ -280,23 +359,93 @@ export const useBowlingGame = () => {
     });
   };
 
-  const hasUnsavedGames = games.some(game => 
-    game.frames.some(frame => 
-      frame.balls.some(ball => ball !== null)
-    )
+  // Soft deletion - just toggle visibility
+  const toggleSessionVisibility = (sessionId: number) => {
+    setSessions(prevSessions =>
+      prevSessions.map(session => 
+        session.id === sessionId ? { ...session, isVisible: !session.isVisible } : session
+      )
+    );
+  };
+
+  const toggleGameVisibility = (sessionId: number, gameId: number) => {
+    setSessions(prevSessions =>
+      prevSessions.map(session => {
+        if (session.id === sessionId) {
+          return {
+            ...session,
+            games: session.games.map(game =>
+              game.id === gameId ? { ...game, isVisible: !game.isVisible } : game
+            ),
+            savedToDatabase: false
+          };
+        }
+        return session;
+      })
+    );
+  };
+
+  const renameSession = (sessionId: number, newTitle: string) => {
+    setSessions(prevSessions =>
+      prevSessions.map(session =>
+        session.id === sessionId ? { ...session, title: newTitle, savedToDatabase: false } : session
+      )
+    );
+  };
+
+  const markSessionAsSaved = (sessionId: number) => {
+    setSessions(prevSessions =>
+      prevSessions.map(session =>
+        session.id === sessionId ? { ...session, savedToDatabase: true } : session
+      )
+    );
+  };
+
+  const hasUnsavedGames = sessions.some(session => 
+    session.isVisible && !session.savedToDatabase
   );
 
+  const fetchUserGames = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      // This would be implemented if we had actual backend fetching logic
+      toast({
+        title: "Feature Coming Soon",
+        description: "Loading saved games from your account will be available soon.",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error fetching user games:', error);
+      toast({
+        title: "Error",
+        description: "Could not load your saved games. Please try again later.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
+
   return {
-    games,
+    sessions,
+    activeSessionId,
     activeGameId,
+    activeSession,
     activeGame,
+    setActiveSessionId,
     setActiveGameId,
     updateActiveGame,
     enterPins,
-    addAnotherGame,
+    addSession,
+    addGameToSession,
     clearGame,
     handleBallClick,
     cancelEdit,
-    hasUnsavedGames
+    toggleSessionVisibility,
+    toggleGameVisibility,
+    renameSession,
+    markSessionAsSaved,
+    hasUnsavedGames,
+    fetchUserGames
   };
 };

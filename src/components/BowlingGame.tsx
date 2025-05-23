@@ -1,19 +1,17 @@
 
 import React from 'react';
-import { CSSProperties } from 'react';
 import { Game } from '../types/bowlingTypes';
 import BowlingFrameDisplay from './BowlingFrameDisplay';
-
-// Helper function to add proper type assertions for CSS properties
-const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => props as unknown as CSSProperties;
 
 interface BowlingGameProps {
   game: Game;
   isActive: boolean;
   gameIndex: number;
   setActiveGameId: (id: number) => void;
-  clearGame: (id: number) => void;
+  clearGame: () => void;
   handleBallClick: (frameIndex: number, ballIndex: number) => void;
+  toggleVisibility: () => void;
+  savedStatus: boolean;
 }
 
 const BowlingGame: React.FC<BowlingGameProps> = ({ 
@@ -22,81 +20,64 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
   gameIndex, 
   setActiveGameId, 
   clearGame, 
-  handleBallClick 
+  handleBallClick,
+  toggleVisibility,
+  savedStatus
 }) => {
   return (
-    <div key={game.id} style={cssProps({ marginBottom: '30px' })}>
-      <div style={cssProps({
-        background: 'white',
-        borderRadius: '15px',
-        padding: '20px',
-        marginBottom: '20px',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
-        border: isActive ? '3px solid #4CAF50' : '1px solid #ddd'
-      })}>
-        <div style={cssProps({
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '15px'
-        })}>
-          <h2 style={cssProps({ 
-            margin: 0, 
-            color: '#333',
-            cursor: 'pointer'
-          })} onClick={() => setActiveGameId(game.id)}>
+    <div key={game.id} className="mb-6">
+      <div className={`
+        bg-white rounded-lg p-5 shadow-lg mb-5 transition-all
+        ${isActive ? 'border-4 border-green-500' : 'border border-gray-200'}
+      `}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 
+            className="text-lg font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors" 
+            onClick={() => setActiveGameId(game.id)}
+          >
             Game {gameIndex + 1} {isActive ? '(Active)' : ''}
           </h2>
-          <button
-            onClick={() => clearGame(game.id)}
-            style={cssProps({
-              background: '#dc3545',
-              color: 'white',
-              border: 'none',
-              padding: '5px 10px',
-              borderRadius: '5px',
-              fontSize: '12px',
-              cursor: 'pointer'
-            })}
-          >
-            Clear Game
-          </button>
+          <div className="space-x-2">
+            {savedStatus && (
+              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                Saved
+              </span>
+            )}
+            <button
+              onClick={clearGame}
+              className="bg-red-500 text-white text-xs px-3 py-1 rounded hover:bg-red-600 transition-colors"
+            >
+              Clear
+            </button>
+            <button
+              onClick={toggleVisibility}
+              className="bg-gray-500 text-white text-xs px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+            >
+              Hide
+            </button>
+          </div>
         </div>
         
-        <div style={cssProps({ display: 'flex', gap: '2px', marginBottom: '20px' })}>
+        <div className="flex gap-[2px] mb-5 overflow-x-auto pb-2">
           {game.frames.map((frame, frameIndex) => (
             <BowlingFrameDisplay
               key={frameIndex}
               frame={frame}
               frameIndex={frameIndex}
               isCurrentFrame={isActive && frameIndex === game.currentFrame}
-              isEditing={isActive && game.editingFrame === frameIndex && game.editingBall === frameIndex}
+              isEditing={isActive && game.editingFrame === frameIndex}
               handleBallClick={handleBallClick}
               frames={game.frames}
             />
           ))}
         </div>
         
-        <div style={cssProps({
-          textAlign: 'center',
-          fontSize: '2em',
-          fontWeight: 'bold',
-          color: '#333',
-          margin: '20px 0'
-        })}>
+        <div className="text-center text-2xl font-bold text-gray-800 my-4">
           Total Score: {game.totalScore}
         </div>
         
         {game.gameComplete && (
-          <div style={cssProps({
-            background: '#4CAF50',
-            color: 'white',
-            padding: '15px',
-            borderRadius: '10px',
-            textAlign: 'center',
-            fontSize: '1.1em',
-            marginTop: '15px'
-          })}>
+          <div className="bg-green-500 text-white p-3 rounded-lg text-center font-medium mt-3">
             🎉 Game Complete! Final Score: {game.totalScore}
           </div>
         )}

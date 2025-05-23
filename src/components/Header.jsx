@@ -1,10 +1,10 @@
 
-// src/components/Header.js
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 import UserMenu from './header/UserMenu';
 import LoginButton from './header/LoginButton';
+import { Save } from 'lucide-react';
 
 const Header = ({ onSaveGames, hasUnsavedGames }) => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -20,40 +20,23 @@ const Header = ({ onSaveGames, hasUnsavedGames }) => {
     logout();
   };
 
-  // For debugging purposes
-  console.log('Header render - isAuthenticated:', isAuthenticated);
-  console.log('Header render - user:', user);
-
-  const headerStyles = {
-    header: {
-      background: 'rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(10px)',
-      padding: '15px 30px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '20px',
-      borderRadius: '15px'
-    },
-    logo: {
-      color: 'white',
-      fontSize: '1.5em',
-      fontWeight: 'bold',
-      margin: 0
-    },
-    authSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '15px'
-    }
-  };
-
   return (
     <>
-      <div style={headerStyles.header}>
-        <h1 style={headerStyles.logo}>🎳 BowlTracker</h1>
+      <div className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md p-4 flex justify-between items-center mb-6 rounded-lg">
+        <h1 className="text-2xl font-bold text-white m-0">🎳 BowlTracker</h1>
         
-        <div style={headerStyles.authSection}>
+        <div className="flex items-center gap-4">
+          {isAuthenticated && hasUnsavedGames && (
+            <button
+              onClick={handleSaveGames}
+              className="relative bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+            >
+              <Save size={18} />
+              <span>Save Games</span>
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+            </button>
+          )}
+          
           {isAuthenticated ? (
             <UserMenu 
               user={user} 
@@ -72,15 +55,13 @@ const Header = ({ onSaveGames, hasUnsavedGames }) => {
         onClose={() => setIsAuthModalOpen(false)} 
       />
 
-      <style>
-        {`
-          @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-          }
-        `}
-      </style>
+      <style jsx>{`
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
+        }
+      `}</style>
     </>
   );
 };

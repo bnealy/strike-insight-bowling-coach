@@ -9,6 +9,8 @@ interface SaveGameAlertProps {
 }
 
 const SaveGameAlert: React.FC<SaveGameAlertProps> = ({ showSuccess, errorMessage }) => {
+  if (!showSuccess && !errorMessage) return null;
+  
   return (
     <>
       {showSuccess && (
