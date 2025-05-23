@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from "@/hooks/use-toast";
+import { useSaveGames } from './useSaveGames';
 
 export interface BowlingSession {
   id: number;
@@ -28,6 +29,7 @@ export const useBowlingGame = () => {
   const [activeSessionId, setActiveSessionId] = useState<number>(1);
   const [activeGameId, setActiveGameId] = useState<number>(1);
   const { isAuthenticated, user } = useAuth();
+  const { saveSessionsToDatabase, isSaving } = useSaveGames();
   
   // Find the active session and game
   const activeSession = sessions.find(session => session.id === activeSessionId) || sessions[0];
@@ -213,28 +215,32 @@ export const useBowlingGame = () => {
             });
           }
         } else {
-          if ((frame.balls[0] || 0) + pins > 10) return;
-          frame.balls[1] = pins;
-          
-          if ((frame.balls[0] || 0) + pins === 10) {
-            if (activeGame.editingFrame !== null) {
-              updateActiveGame({
-                frames: newFrames,
-                editingBall: 2
-              });
+          if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
+            if (pins > 10) return;
+            frame.balls[1] = pins;
+            
+            if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
+              if (activeGame.editingFrame !== null) {
+                updateActiveGame({
+                  frames: newFrames,
+                  editingBall: 2
+                });
+              } else {
+                updateActiveGame({
+                  frames: newFrames,
+                  currentBall: 2
+                });
+              }
             } else {
               updateActiveGame({
                 frames: newFrames,
-                currentBall: 2
+                editingFrame: null,
+                editingBall: null,
+                currentBall: 3
               });
             }
           } else {
-            updateActiveGame({
-              frames: newFrames,
-              editingFrame: null,
-              editingBall: null,
-              currentBall: 3
-            });
+            return;
           }
         }
       } else if (targetBall === 2) {
@@ -441,6 +447,10 @@ export const useBowlingGame = () => {
     }
   };
 
+  const handleSaveGames = async () => {
+    await saveSessionsToDatabase(sessions, markSessionAsSaved);
+  };
+
   return {
     sessions,
     activeSessionId,
@@ -462,6 +472,8 @@ export const useBowlingGame = () => {
     renameSession,
     markSessionAsSaved,
     hasUnsavedGames,
-    fetchUserGames
+    fetchUserGames,
+    handleSaveGames,
+    isSaving
   };
 };
