@@ -4,13 +4,11 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { BowlingSession } from './useBowlingGame';
 import { useToast } from "@/hooks/use-toast";
-import { useUserStats } from './useUserStats';
 
 export const useSaveGames = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { updateUserStats } = useUserStats();
 
   const saveSessionsToDatabase = async (sessions: BowlingSession[], markSessionAsSaved: (sessionId: number) => void) => {
     if (!user || sessions.length === 0) {
@@ -103,11 +101,11 @@ export const useSaveGames = () => {
           console.log('Frames saved for game:', gameData.id);
         }
 
-        // Update user stats with completed games
-        const completedGames = visibleGames.filter(game => game.gameComplete);
-        if (completedGames.length > 0) {
-          await updateUserStats(completedGames);
-        }
+        // TEMPORARILY DISABLED: Update user stats with completed games
+        // const completedGames = visibleGames.filter(game => game.gameComplete);
+        // if (completedGames.length > 0) {
+        //   await updateUserStats(completedGames);
+        // }
 
         // Mark session as saved
         markSessionAsSaved(session.id);

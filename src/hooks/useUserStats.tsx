@@ -17,38 +17,45 @@ export const useUserStats = () => {
   const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Query for fetching user stats
+  // TEMPORARILY DISABLED: Query for fetching user stats
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['userStats', user?.id],
     queryFn: async (): Promise<UserStats | null> => {
-      if (!isAuthenticated || !user?.id) return null;
+      // TEMPORARILY RETURN NULL to avoid user_bowling_stats table calls
+      console.log('User stats temporarily disabled');
+      return null;
       
-      try {
-        const { data, error } = await supabase
-          .from('user_bowling_stats')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+      // if (!isAuthenticated || !user?.id) return null;
+      
+      // try {
+      //   const { data, error } = await supabase
+      //     .from('user_bowling_stats')
+      //     .select('*')
+      //     .eq('user_id', user.id)
+      //     .single();
         
-        if (error) {
-          console.error('Error fetching user stats:', error);
-          return null;
-        }
+      //   if (error) {
+      //     console.error('Error fetching user stats:', error);
+      //     return null;
+      //   }
         
-        return data;
-      } catch (err) {
-        console.error('Unexpected error fetching stats:', err);
-        return null;
-      }
+      //   return data;
+      // } catch (err) {
+      //   console.error('Unexpected error fetching stats:', err);
+      //   return null;
+      // }
     },
-    enabled: !!isAuthenticated && !!user?.id,
+    enabled: false, // TEMPORARILY DISABLED
   });
   
-  // Function to update user stats when games are saved
+  // TEMPORARILY DISABLED: Function to update user stats when games are saved
   const updateUserStats = async (completedGames: Game[]) => {
-    if (!isAuthenticated || !user?.id || completedGames.length === 0) {
-      return;
-    }
+    console.log('User stats update temporarily disabled');
+    return;
+    
+    // if (!isAuthenticated || !user?.id || completedGames.length === 0) {
+    //   return;
+    // }
     
     try {
       // Count strikes and spares
