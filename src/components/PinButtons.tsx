@@ -7,33 +7,39 @@ import { Frame } from '../types/bowlingTypes';
 const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => props as unknown as CSSProperties;
 
 interface PinButtonsProps {
-  activeFrame: number;
-  activeBall: number;
+  onPinClick: (pins: number) => void;
+  currentFrame: number;
+  currentBall: number;
   frames: Frame[];
-  enterPins: (pins: number) => void;
+  editingFrame: number | null;
+  editingBall: number | null;
+  gameComplete: boolean;
 }
 
 const PinButtons: React.FC<PinButtonsProps> = ({ 
-  activeFrame, 
-  activeBall, 
-  frames, 
-  enterPins 
+  onPinClick,
+  currentFrame, 
+  currentBall, 
+  frames,
+  editingFrame,
+  editingBall,
+  gameComplete
 }) => {
   const getMaxPins = (): number => {
-    if (activeFrame >= 10 || activeBall >= 3) return 0;
+    if (currentFrame >= 10 || currentBall >= 3 || gameComplete) return 0;
     
     let maxPins = 10;
     
-    if (activeFrame < 9) {
-      if (activeBall === 1) {
-        maxPins = 10 - (frames[activeFrame].balls[0] || 0);
+    if (currentFrame < 9) {
+      if (currentBall === 1) {
+        maxPins = 10 - (frames[currentFrame].balls[0] || 0);
       }
     } else {
-      if (activeBall === 1 && frames[9].balls[0] === 10) {
+      if (currentBall === 1 && frames[9].balls[0] === 10) {
         maxPins = 10;
-      } else if (activeBall === 1 && frames[9].balls[0] !== 10) {
+      } else if (currentBall === 1 && frames[9].balls[0] !== 10) {
         maxPins = 10 - (frames[9].balls[0] || 0);
-      } else if (activeBall === 2) {
+      } else if (currentBall === 2) {
         if (frames[9].balls[0] === 10) {
           if (frames[9].balls[1] === 10) {
             maxPins = 10;
@@ -73,7 +79,7 @@ const PinButtons: React.FC<PinButtonsProps> = ({
             justifyContent: 'center',
             border: 'none'
           })}
-          onClick={() => enterPins(i)}
+          onClick={() => onPinClick(i)}
         >
           {i}
         </div>
