@@ -43,9 +43,7 @@ export const useSaveGames = () => {
         console.log('Games to save:', visibleGames.map(g => ({ 
           id: g.id, 
           totalScore: g.totalScore, 
-          gameComplete: g.gameComplete,
-          totalScoreType: typeof g.totalScore,
-          totalScoreValue: g.totalScore
+          gameComplete: g.gameComplete
         })));
 
         // Create session in database with the correct total_games count (all visible games)
@@ -70,15 +68,18 @@ export const useSaveGames = () => {
         for (const game of visibleGames) {
           console.log('Saving game:', game.id, 'with total score:', game.totalScore, 'complete:', game.gameComplete);
           
-          // Ensure total_score is always a valid integer
-          let totalScore = 0;
-          if (typeof game.totalScore === 'number' && !isNaN(game.totalScore)) {
-            totalScore = Math.floor(game.totalScore);
-          } else if (typeof game.totalScore === 'string' && !isNaN(parseFloat(game.totalScore))) {
-            totalScore = Math.floor(parseFloat(game.totalScore));
-          }
+          // Validate total score is a realistic bowling score (0-300)
+          const validateBowlingScore = (score: any): number => {
+            const numericScore = Number(score);
+            if (isNaN(numericScore) || numericScore < 0 || numericScore > 300) {
+              console.warn('Invalid bowling score detected:', score, 'defaulting to 0');
+              return 0;
+            }
+            return Math.floor(numericScore);
+          };
           
-          console.log('Final resolved total score:', totalScore, 'from original:', game.totalScore);
+          const totalScore = validateBowlingScore(game.totalScore);
+          console.log('Validated total score:', totalScore, 'from original:', game.totalScore);
           
           // Insert game
           const { data: gameData, error: gameError } = await supabase
