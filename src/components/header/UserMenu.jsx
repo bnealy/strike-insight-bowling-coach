@@ -1,11 +1,17 @@
-
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const UserMenu = ({ user, handleLogout, handleSaveGames, hasUnsavedGames }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const navigate = useNavigate();
   
   // Extract display name with fallbacks
   const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+  
+  const handleViewSavedGames = () => {
+    setShowUserMenu(false);
+    navigate('/saved-games');
+  };
   
   const styles = {
     userInfo: {
@@ -103,10 +109,7 @@ const UserMenu = ({ user, handleLogout, handleSaveGames, hasUnsavedGames }) => {
           <div style={styles.userMenu}>
             <div
               style={styles.menuItem}
-              onClick={() => {
-                setShowUserMenu(false);
-                // TODO: Open saved games modal
-              }}
+              onClick={handleViewSavedGames}
               onMouseEnter={(e) => {
                 e.target.style.backgroundColor = '#f8f9fa';
               }}
