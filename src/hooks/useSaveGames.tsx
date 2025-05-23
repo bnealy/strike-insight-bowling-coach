@@ -43,8 +43,33 @@ export const useSaveGames = () => {
         console.log('Games to save:', visibleGames.map(g => ({ 
           id: g.id, 
           totalScore: g.totalScore, 
-          gameComplete: g.gameComplete
+          gameComplete: g.gameComplete,
+          frames: g.frames.length,
+          currentFrame: g.currentFrame
         })));
+
+        // Validate each game's total score before creating the session
+        const validatedGames = visibleGames.map(game => {
+          const validateBowlingScore = (score: any): number => {
+            // Handle undefined, null, or non-numeric values
+            if (score === null || score === undefined) {
+              console.warn('Game total score is null/undefined, defaulting to 0');
+              return 0;
+            }
+            
+            const numericScore = Number(score);
+            if (isNaN(numericScore) || numericScore < 0 || numericScore > 300) {
+              console.warn('Invalid bowling score detected:', score, 'defaulting to 0');
+              return 0;
+            }
+            return Math.floor(numericScore);
+          };
+          
+          return {
+            ...game,
+            validatedTotalScore: validateBowlingScore(game.totalScore)
+          };
+        });
 
         // Create session in database with the correct total_games count (all visible games)
         const { data: sessionData, error: sessionError } = await supabase
@@ -52,7 +77,7 @@ export const useSaveGames = () => {
           .insert([{
             user_id: user.id,
             title: session.title,
-            total_games: visibleGames.length // Use all visible games count
+            total_games: validatedGames.length // Use validated games count
           }])
           .select()
           .single();
@@ -64,30 +89,17 @@ export const useSaveGames = () => {
 
         console.log('Created game session:', sessionData);
 
-        // Save ALL visible games, even if they're empty
-        for (const game of visibleGames) {
-          console.log('Saving game:', game.id, 'with total score:', game.totalScore, 'complete:', game.gameComplete);
+        // Save ALL validated games
+        for (const game of validatedGames) {
+          console.log('Saving game:', game.id, 'with validated total score:', game.validatedTotalScore, 'original score:', game.totalScore);
           
-          // Validate total score is a realistic bowling score (0-300)
-          const validateBowlingScore = (score: any): number => {
-            const numericScore = Number(score);
-            if (isNaN(numericScore) || numericScore < 0 || numericScore > 300) {
-              console.warn('Invalid bowling score detected:', score, 'defaulting to 0');
-              return 0;
-            }
-            return Math.floor(numericScore);
-          };
-          
-          const totalScore = validateBowlingScore(game.totalScore);
-          console.log('Validated total score:', totalScore, 'from original:', game.totalScore);
-          
-          // Insert game
+          // Insert game with validated score
           const { data: gameData, error: gameError } = await supabase
             .from('bowling_games')
             .insert([{
               session_id: sessionData.id,
               game_number: game.id,
-              total_score: totalScore,
+              total_score: game.validatedTotalScore, // Use pre-validated score
               is_complete: game.gameComplete || false
             }])
             .select()
@@ -98,7 +110,7 @@ export const useSaveGames = () => {
             throw gameError;
           }
 
-          console.log('Game saved:', gameData);
+          console.log('Game saved successfully:', gameData);
 
           // Save all frames for this game
           const frameData = game.frames.map((frame, index) => ({
