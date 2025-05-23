@@ -88,6 +88,18 @@ const BowlingScorecard = () => {
       setSaveError(null);
       console.info("Attempting to save games for user:", isAuthenticated);
       
+      // DEBUG: Log the current state before filtering
+      console.log('=== SAVE DEBUG START ===');
+      console.log('Original flowState.gameCount:', flowState.gameCount);
+      console.log('All sessions:', sessions.map(s => ({ 
+        id: s.id, 
+        title: s.title, 
+        isVisible: s.isVisible, 
+        totalGames: s.games.length,
+        visibleGames: s.games.filter(g => g.isVisible).length,
+        gameDetails: s.games.map(g => ({ id: g.id, isVisible: g.isVisible, totalScore: g.totalScore }))
+      })));
+      
       // Get sessions that are visible and have at least one visible game
       const validSessions = sessions.filter(s => {
         const hasVisibleGames = s.isVisible && s.games.some(g => g.isVisible);
@@ -107,6 +119,7 @@ const BowlingScorecard = () => {
       }
       
       console.log('Valid sessions to save:', validSessions.map(s => ({ title: s.title, gameCount: s.games.filter(g => g.isVisible).length })));
+      console.log('=== SAVE DEBUG END ===');
       
       const result = await saveGames(validSessions);
       
