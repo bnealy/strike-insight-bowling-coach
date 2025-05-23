@@ -7,6 +7,8 @@ import { useBowlingGame } from '../hooks/useBowlingGame';
 import { useUserStats } from '@/hooks/useUserStats';
 import { useToast } from "@/hooks/use-toast";
 import { FlowState, BowlingFlowStep } from '@/types/flowTypes';
+import BowlingGame from './BowlingGame';
+import GameEditorPanel from './GameEditorPanel';
 
 import WelcomeScreen from './flow/WelcomeScreen';
 import GameCountSelector from './flow/GameCountSelector';
@@ -19,7 +21,7 @@ const BowlingScorecard = () => {
   const { toast } = useToast();
   const { updateUserStats } = useUserStats();
   
-  // Flow state management
+  // Flow state management (only for authenticated users)
   const [flowState, setFlowState] = useState<FlowState>({
     currentStep: 'welcome',
     gameCount: 1
@@ -45,18 +47,15 @@ const BowlingScorecard = () => {
     renameSession
   } = useBowlingGame();
   
-  // Navigation handlers for the flow
+  // Navigation handlers for the flow (only for authenticated users)
   const handleNextStep = (nextStep: BowlingFlowStep) => {
-    // If moving from welcome to gameCount and no session exists, create one
     if (nextStep === 'gameCount' && flowState.currentStep === 'welcome') {
       if (sessions.filter(s => s.isVisible).length === 0) {
         addSession();
       }
     }
     
-    // If moving to gameEntry, ensure we have the right number of games
     if (nextStep === 'gameEntry' && flowState.currentStep === 'gameCount') {
-      // Add games until we reach the desired count
       const visibleGames = activeSession?.games.filter(g => g.isVisible) || [];
       const gamesNeeded = flowState.gameCount - visibleGames.length;
       
@@ -91,7 +90,6 @@ const BowlingScorecard = () => {
       setSaveError(null);
       console.info("Attempting to save games for user:", isAuthenticated);
       
-      // Filter out sessions with no games or games with no total score
       const validSessions = sessions.filter(s => {
         return s.isVisible && s.games.some(g => g.isVisible && g.totalScore !== null);
       });
@@ -118,7 +116,6 @@ const BowlingScorecard = () => {
           duration: 3000,
         });
         
-        // Update user statistics with completed games
         const completedGames = validSessions.flatMap(s => 
           s.games.filter(g => g.isVisible && g.gameComplete && g.totalScore != null)
         );
@@ -126,7 +123,6 @@ const BowlingScorecard = () => {
         
         setTimeout(() => setShowSaveSuccess(false), 5000);
         
-        // After successful save, return to welcome step for a fresh start
         setFlowState({ currentStep: 'welcome', gameCount: 1 });
       } else {
         setSaveError(result.error || 'Unknown error saving games');
@@ -151,6 +147,11 @@ const BowlingScorecard = () => {
     }
   };
 
+  // Find the active game for non-authenticated users
+  const activeGame = activeSession?.games.find(game => game.id === activeGameId);
+  const visibleGames = activeSession?.games.filter(game => game.isVisible) || [];
+  const activeGameIndex = visibleGames.findIndex(g => g.id === activeGameId);
+
   return (
     <div className="max-w-[1200px] mx-auto p-5 min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 font-sans">
       <Header onSaveGames={handleSaveGames} hasUnsavedGames={isAuthenticated && hasUnsavedGames} />
@@ -160,35 +161,95 @@ const BowlingScorecard = () => {
         errorMessage={saveError} 
       />
       
-      {flowState.currentStep === 'welcome' && (
-        <WelcomeScreen onNext={handleNextStep} />
-      )}
-      
-      {flowState.currentStep === 'gameCount' && (
-        <GameCountSelector 
-          gameCount={flowState.gameCount}
-          onGameCountChange={handleGameCountChange}
-          onNext={handleNextStep}
-          onBack={handlePreviousStep}
-        />
-      )}
-      
-      {flowState.currentStep === 'gameEntry' && activeSession && (
-        <GameEntryScreen 
-          gameCount={flowState.gameCount}
-          activeSession={activeSession}
-          activeSessionId={activeSessionId}
-          activeGameId={activeGameId}
-          games={activeSession.games}
-          setActiveGameId={setActiveGameId}
-          clearGame={clearGame}
-          handleBallClick={handleBallClick}
-          toggleGameVisibility={toggleGameVisibility}
-          enterPins={enterPins}
-          cancelEdit={cancelEdit}
-          addGameToSession={addGameToSession}
-          onBack={handlePreviousStep}
-        />
+      {isAuthenticated ? (
+        // Show flow for authenticated users
+        <>
+          {flowState.currentStep === 'welcome' && (
+            <WelcomeScreen onNext={handleNextStep} />
+          )}
+          
+          {flowState.currentStep === 'gameCount' && (
+            <GameCountSelector 
+              gameCount={flowState.gameCount}
+              onGameCountChange={handleGameCountChange}
+              onNext={handleNextStep}
+              onBack={handlePreviousStep}
+            />
+          )}
+          
+          {flowState.currentStep === 'gameEntry' && activeSession && (
+            <GameEntryScreen 
+              gameCount={flowState.gameCount}
+              activeSession={activeSession}
+              activeSessionId={activeSessionId}
+              activeGameId={activeGameId}
+              games={activeSession.games}
+              setActiveGameId={setActiveGameId}
+              clearGame={clearGame}
+              handleBallClick={handleBallClick}
+              toggleGameVisibility={toggleGameVisibility}
+              enterPins={enterPins}
+              cancelEdit={cancelEdit}
+              addGameToSession={addGameToSession}
+              onBack={handlePreviousStep}
+            />
+          )}
+        </>
+      ) : (
+        // Show original simple interface for non-authenticated users
+        <div className="w-full">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-white mb-4">
+              {activeSession?.title || "New Session"}
+            </h2>
+            
+            {visibleGames.map((game, index) => (
+              <BowlingGame
+                key={game.id}
+                game={game}
+                isActive={game.id === activeGameId}
+                gameIndex={index}
+                setActiveGameId={setActiveGameId}
+                clearGame={() => clearGame(activeSessionId, game.id)}
+                handleBallClick={(frameIndex, ballIndex) => {
+                  setActiveGameId(game.id);
+                  handleBallClick(frameIndex, ballIndex);
+                }}
+                toggleVisibility={() => toggleGameVisibility(activeSessionId, game.id)}
+                savedStatus={false}
+              />
+            ))}
+            
+            {visibleGames.length === 0 && (
+              <div className="bg-white bg-opacity-10 p-4 rounded-lg text-center text-white">
+                <p>No games in this session. Add a game to get started.</p>
+              </div>
+            )}
+            
+            <button 
+              onClick={addGameToSession}
+              className="mt-4 bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
+            >
+              Add Game
+            </button>
+          </div>
+          
+          {activeGame && (
+            <GameEditorPanel
+              gameIndex={activeGameIndex}
+              currentFrame={activeGame.currentFrame || 0}
+              currentBall={activeGame.currentBall || 0}
+              frames={activeGame.frames || []}
+              editingFrame={activeGame.editingFrame}
+              editingBall={activeGame.editingBall}
+              gameComplete={activeGame.gameComplete || false}
+              enterPins={enterPins}
+              cancelEdit={cancelEdit}
+              addAnotherGame={addGameToSession}
+              gameCount={1}
+            />
+          )}
+        </div>
       )}
     </div>
   );
