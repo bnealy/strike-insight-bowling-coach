@@ -2,6 +2,7 @@
 import React from 'react';
 import PinButtons from './PinButtons';
 import { Frame } from '../types/bowlingTypes';
+import { Button } from './ui/button';
 
 interface GameEditorPanelProps {
   gameIndex: number;
@@ -37,12 +38,13 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
             {editingFrame !== null && editingBall !== null ? (
               <>
                 Editing Game {gameIndex + 1}, Frame {editingFrame + 1}, Ball {editingBall + 1}
-                <button 
+                <Button 
                   onClick={cancelEdit}
-                  className="ml-4 px-3 py-1 bg-gray-500 text-white border-none rounded text-sm hover:bg-gray-600 transition-colors"
+                  variant="secondary"
+                  className="ml-4 px-3 py-1 text-sm"
                 >
                   Cancel Edit
-                </button>
+                </Button>
               </>
             ) : gameComplete ? (
               "Click any ball to edit"
@@ -61,12 +63,13 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
       )}
       
       <div className="flex gap-4 justify-center mt-5">
-        <button 
+        <Button 
           onClick={addAnotherGame}
           className="bg-gradient-to-r from-green-400 to-green-600 text-white py-3 px-6 rounded-full text-lg font-medium hover:from-green-500 hover:to-green-700 transition-all shadow-lg"
+          disabled={addAnotherGame === (() => {})}
         >
           Add Another Game
-        </button>
+        </Button>
       </div>
     </div>
   );

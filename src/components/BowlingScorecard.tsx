@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
-import BowlingGame from './BowlingGame';
 import SaveGameAlert from './alerts/SaveGameAlert';
-import PageHeader from './PageHeader';
-import GameEditorPanel from './GameEditorPanel';
 import { useBowlingGame } from '../hooks/useBowlingGame';
-import SessionManager from './SessionManager';
 import { useToast } from "@/hooks/use-toast";
+import { FlowState, BowlingFlowStep } from '@/types/flowTypes';
+
+import WelcomeScreen from './flow/WelcomeScreen';
+import GameCountSelector from './flow/GameCountSelector';
+import GameEntryScreen from './flow/GameEntryScreen';
 
 const BowlingScorecard = () => {
   const { saveGames, isAuthenticated } = useAuth();
@@ -16,12 +17,17 @@ const BowlingScorecard = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const { toast } = useToast();
   
+  // Flow state management
+  const [flowState, setFlowState] = useState<FlowState>({
+    currentStep: 'welcome',
+    gameCount: 1
+  });
+  
   const {
     sessions,
     activeSessionId,
     activeGameId,
     activeSession,
-    activeGame,
     setActiveSessionId,
     setActiveGameId,
     enterPins,
@@ -37,12 +43,36 @@ const BowlingScorecard = () => {
     renameSession
   } = useBowlingGame();
   
-  // Destructure the active game properties for easier access
-  const { frames, currentFrame, currentBall, gameComplete, editingFrame, editingBall } = activeGame || {};
+  // Navigation handlers for the flow
+  const handleNextStep = (nextStep: BowlingFlowStep) => {
+    // If moving from welcome to gameCount and no session exists, create one
+    if (nextStep === 'gameCount' && flowState.currentStep === 'welcome') {
+      if (sessions.filter(s => s.isVisible).length === 0) {
+        addSession();
+      }
+    }
+    
+    // If moving to gameEntry, ensure we have the right number of games
+    if (nextStep === 'gameEntry' && flowState.currentStep === 'gameCount') {
+      // Add games until we reach the desired count
+      const visibleGames = activeSession?.games.filter(g => g.isVisible) || [];
+      const gamesNeeded = flowState.gameCount - visibleGames.length;
+      
+      for (let i = 0; i < gamesNeeded; i++) {
+        addGameToSession();
+      }
+    }
+    
+    setFlowState(prev => ({ ...prev, currentStep: nextStep }));
+  };
   
-  // Find the index of the active game in the active session
-  const visibleGames = activeSession?.games.filter(game => game.isVisible) || [];
-  const activeGameIndex = visibleGames.findIndex(g => g.id === activeGameId);
+  const handlePreviousStep = (prevStep: BowlingFlowStep) => {
+    setFlowState(prev => ({ ...prev, currentStep: prevStep }));
+  };
+  
+  const handleGameCountChange = (count: number) => {
+    setFlowState(prev => ({ ...prev, gameCount: count }));
+  };
 
   const handleSaveGames = async () => {
     if (!isAuthenticated) {
@@ -86,6 +116,9 @@ const BowlingScorecard = () => {
           duration: 3000,
         });
         setTimeout(() => setShowSaveSuccess(false), 5000);
+        
+        // After successful save, return to welcome step for a fresh start
+        setFlowState({ currentStep: 'welcome', gameCount: 1 });
       } else {
         setSaveError(result.error || 'Unknown error saving games');
         toast({
@@ -118,76 +151,34 @@ const BowlingScorecard = () => {
         errorMessage={saveError} 
       />
       
-      <PageHeader 
-        title="Bowling Score Calculator" 
-        subtitle="Track and save your bowling scores" 
-      />
-      
-      <SessionManager 
-        sessions={sessions.filter(s => s.isVisible)}
-        activeSessionId={activeSessionId}
-        setActiveSessionId={setActiveSessionId}
-        addSession={addSession}
-        renameSession={renameSession}
-        toggleVisibility={toggleSessionVisibility}
-      />
-      
-      {activeSession && (
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-white mb-4">
-            {activeSession.title}
-            {activeSession.savedToDatabase && (
-              <span className="ml-2 text-sm bg-green-500 text-white px-2 py-1 rounded-full">
-                Saved
-              </span>
-            )}
-          </h2>
-          
-          {visibleGames.map((game, index) => (
-            <BowlingGame
-              key={game.id}
-              game={game}
-              isActive={game.id === activeGameId}
-              gameIndex={index}
-              setActiveGameId={setActiveGameId}
-              clearGame={() => clearGame(activeSessionId, game.id)}
-              handleBallClick={(frameIndex, ballIndex) => {
-                setActiveGameId(game.id);
-                handleBallClick(frameIndex, ballIndex);
-              }}
-              toggleVisibility={() => toggleGameVisibility(activeSessionId, game.id)}
-              savedStatus={activeSession.savedToDatabase}
-            />
-          ))}
-          
-          {visibleGames.length === 0 && (
-            <div className="bg-white bg-opacity-10 p-4 rounded-lg text-center text-white">
-              <p>No visible games in this session. Add a game to get started.</p>
-            </div>
-          )}
-          
-          <button 
-            onClick={() => addGameToSession()}
-            className="mt-4 bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
-          >
-            Add New Game
-          </button>
-        </div>
+      {flowState.currentStep === 'welcome' && (
+        <WelcomeScreen onNext={handleNextStep} />
       )}
       
-      {activeGame && (
-        <GameEditorPanel
-          gameIndex={activeGameIndex}
-          currentFrame={currentFrame || 0}
-          currentBall={currentBall || 0}
-          frames={frames || []}
-          editingFrame={editingFrame}
-          editingBall={editingBall}
-          gameComplete={gameComplete || false}
+      {flowState.currentStep === 'gameCount' && (
+        <GameCountSelector 
+          gameCount={flowState.gameCount}
+          onGameCountChange={handleGameCountChange}
+          onNext={handleNextStep}
+          onBack={handlePreviousStep}
+        />
+      )}
+      
+      {flowState.currentStep === 'gameEntry' && activeSession && (
+        <GameEntryScreen 
+          gameCount={flowState.gameCount}
+          activeSession={activeSession}
+          activeSessionId={activeSessionId}
+          activeGameId={activeGameId}
+          games={activeSession.games}
+          setActiveGameId={setActiveGameId}
+          clearGame={clearGame}
+          handleBallClick={handleBallClick}
+          toggleGameVisibility={toggleGameVisibility}
           enterPins={enterPins}
           cancelEdit={cancelEdit}
-          addAnotherGame={addGameToSession}
-          gameCount={visibleGames.length}
+          addGameToSession={addGameToSession}
+          onBack={handlePreviousStep}
         />
       )}
     </div>
