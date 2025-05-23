@@ -333,6 +333,21 @@ export const useBowlingGame = () => {
     );
   };
 
+  const deleteGame = (sessionId: number, gameId: number) => {
+    setSessions(prevSessions =>
+      prevSessions.map(session => {
+        if (session.id === sessionId) {
+          return {
+            ...session,
+            games: session.games.filter(game => game.id !== gameId),
+            savedToDatabase: false
+          };
+        }
+        return session;
+      })
+    );
+  };
+
   const handleBallClick = (frameIndex: number, ballIndex: number) => {
     if (!activeGame) return;
     
@@ -439,6 +454,7 @@ export const useBowlingGame = () => {
     addSession,
     addGameToSession,
     clearGame,
+    deleteGame,
     handleBallClick,
     cancelEdit,
     toggleSessionVisibility,

@@ -13,10 +13,6 @@ interface GameEditorPanelProps {
   gameComplete: boolean;
   enterPins: (pins: number) => void;
   cancelEdit: () => void;
-  addAnotherGame: () => void;
-  gameCount: number;
-  showSaveButton?: boolean;
-  onSaveGames?: () => void;
 }
 
 const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
@@ -28,11 +24,7 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
   editingBall,
   gameComplete,
   enterPins,
-  cancelEdit,
-  addAnotherGame,
-  gameCount,
-  showSaveButton = false,
-  onSaveGames
+  cancelEdit
 }) => {
   const isEditing = editingFrame !== null && editingBall !== null;
   
@@ -62,24 +54,6 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
         editingBall={editingBall}
         gameComplete={false}
       />
-
-      <div className="flex justify-center items-center gap-4 mt-6">
-        <button
-          onClick={addAnotherGame}
-          className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
-        >
-          Add Another Game
-        </button>
-        
-        {showSaveButton && onSaveGames && (
-          <button
-            onClick={onSaveGames}
-            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-4 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
-          >
-            Save Games
-          </button>
-        )}
-      </div>
     </div>
   );
 };

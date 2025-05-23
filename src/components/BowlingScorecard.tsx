@@ -44,7 +44,8 @@ const BowlingScorecard = () => {
     toggleSessionVisibility,
     toggleGameVisibility,
     renameSession,
-    updateActiveGame
+    updateActiveGame,
+    deleteGame
   } = useBowlingGame();
   
   // Navigation handlers for the flow (only for authenticated users)
@@ -157,6 +158,17 @@ const BowlingScorecard = () => {
     });
   };
 
+  // Handle delete for non-authenticated users
+  const handleDeleteGame = (gameId: number) => {
+    deleteGame(activeSessionId, gameId);
+    
+    // If we deleted the active game, find another game to make active
+    const remainingGames = activeSession?.games.filter(g => g.isVisible && g.id !== gameId) || [];
+    if (remainingGames.length > 0 && gameId === activeGameId) {
+      setActiveGameId(remainingGames[0].id);
+    }
+  };
+
   // Find the active game for non-authenticated users
   const activeGame = activeSession?.games.find(game => game.id === activeGameId);
   const visibleGames = activeSession?.games.filter(game => game.isVisible) || [];
@@ -211,9 +223,26 @@ const BowlingScorecard = () => {
         // Show original simple interface for non-authenticated users
         <div className="w-full">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-white mb-4">
-              {activeSession?.title || "New Session"}
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">
+                {activeSession?.title || "New Session"}
+              </h2>
+              <div className="flex gap-4">
+                <button
+                  onClick={addGameToSession}
+                  className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
+                >
+                  Add Another Game
+                </button>
+                
+                <button
+                  onClick={handleSaveGames}
+                  className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-4 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
+                >
+                  Save Games
+                </button>
+              </div>
+            </div>
             
             {visibleGames.map((game, index) => (
               <BowlingGame
@@ -230,7 +259,7 @@ const BowlingScorecard = () => {
                 toggleVisibility={() => toggleGameVisibility(activeSessionId, game.id)}
                 savedStatus={false}
                 isAuthenticated={isAuthenticated}
-                onEditGame={() => handleEditGame(game.id)}
+                onDeleteGame={() => handleDeleteGame(game.id)}
               />
             ))}
             
@@ -252,10 +281,6 @@ const BowlingScorecard = () => {
               gameComplete={activeGame.gameComplete || false}
               enterPins={enterPins}
               cancelEdit={cancelEdit}
-              addAnotherGame={addGameToSession}
-              gameCount={1}
-              showSaveButton={true}
-              onSaveGames={handleSaveGames}
             />
           )}
         </div>

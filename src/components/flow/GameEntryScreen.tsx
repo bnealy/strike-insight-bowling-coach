@@ -5,7 +5,6 @@ import { BowlingFlowStep } from '@/types/flowTypes';
 import BowlingGame from '../BowlingGame';
 import GameEditorPanel from '../GameEditorPanel';
 import { Game } from '@/types/bowlingTypes';
-import { useBowlingGame } from '@/hooks/useBowlingGame';
 
 interface GameEntryScreenProps {
   gameCount: number;
@@ -50,14 +49,36 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-4">
-          {activeSession?.title || "New Session"}
-          {activeSession?.savedToDatabase && (
-            <span className="ml-2 text-sm bg-green-500 text-white px-2 py-1 rounded-full">
-              Saved
-            </span>
-          )}
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-white">
+            {activeSession?.title || "New Session"}
+            {activeSession?.savedToDatabase && (
+              <span className="ml-2 text-sm bg-green-500 text-white px-2 py-1 rounded-full">
+                Saved
+              </span>
+            )}
+          </h2>
+          
+          <div className="flex gap-4">
+            {visibleGames.length < gameCount && (
+              <button
+                onClick={addGameToSession}
+                className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
+              >
+                Add Another Game
+              </button>
+            )}
+            
+            {hasUnsavedGames && (
+              <button
+                onClick={onSaveGames}
+                className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-4 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
+              >
+                Save Games
+              </button>
+            )}
+          </div>
+        </div>
         
         {visibleGames.map((game, index) => (
           <BowlingGame
@@ -94,10 +115,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
           gameComplete={activeGame.gameComplete || false}
           enterPins={enterPins}
           cancelEdit={cancelEdit}
-          addAnotherGame={visibleGames.length < gameCount ? addGameToSession : () => {}}
-          gameCount={gameCount}
-          showSaveButton={hasUnsavedGames}
-          onSaveGames={onSaveGames}
         />
       )}
       

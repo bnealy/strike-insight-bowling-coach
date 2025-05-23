@@ -13,7 +13,7 @@ interface BowlingGameProps {
   toggleVisibility: () => void;
   savedStatus: boolean;
   isAuthenticated?: boolean;
-  onEditGame?: () => void;
+  onDeleteGame?: () => void;
 }
 
 const BowlingGame: React.FC<BowlingGameProps> = ({ 
@@ -26,7 +26,7 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
   toggleVisibility,
   savedStatus,
   isAuthenticated = true,
-  onEditGame
+  onDeleteGame
 }) => {
   return (
     <div key={game.id} className="mb-6">
@@ -62,10 +62,10 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
               </button>
             ) : (
               <button
-                onClick={onEditGame}
-                className="bg-blue-500 text-white text-xs px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+                onClick={onDeleteGame}
+                className="bg-red-600 text-white text-xs px-3 py-1 rounded hover:bg-red-700 transition-colors"
               >
-                Edit
+                Delete
               </button>
             )}
           </div>
