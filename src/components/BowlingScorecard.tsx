@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
@@ -40,6 +39,7 @@ const BowlingScorecard = () => {
     setActiveGameId,
     enterPins,
     addGameToSession,
+    setupGamesForSession,
     clearGame,
     handleBallClick,
     cancelEdit,
@@ -62,12 +62,9 @@ const BowlingScorecard = () => {
     }
     
     if (nextStep === 'gameEntry' && flowState.currentStep === 'gameCount') {
-      const visibleGames = activeSession?.games.filter(g => g.isVisible) || [];
-      const gamesNeeded = flowState.gameCount - visibleGames.length;
-      
-      for (let i = 0; i < gamesNeeded; i++) {
-        addGameToSession();
-      }
+      console.log('Transitioning to game entry with game count:', flowState.gameCount);
+      // Use the new function to set up the exact number of games
+      setupGamesForSession(flowState.gameCount);
     }
     
     setFlowState(prev => ({ ...prev, currentStep: nextStep }));

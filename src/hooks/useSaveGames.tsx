@@ -42,13 +42,13 @@ export const useSaveGames = () => {
 
         console.log('Attempting to save session:', session.title, 'with games:', visibleGames.length);
 
-        // Create session in database
+        // Create session in database with the correct total_games count
         const { data: sessionData, error: sessionError } = await supabase
           .from('bowling_game_sessions')
           .insert([{
             user_id: user.id,
             title: session.title,
-            total_games: visibleGames.length
+            total_games: visibleGames.length // Use actual visible games count
           }])
           .select()
           .single();

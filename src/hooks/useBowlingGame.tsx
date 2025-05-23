@@ -297,8 +297,39 @@ export const useBowlingGame = () => {
       })
     );
     
-    const newGameId = Math.max(...activeSession.games.map(g => g.id)) + 1;
+    const activeSessionGames = activeSession?.games || [];
+    const newGameId = activeSessionGames.length > 0 ? 
+      Math.max(...activeSessionGames.map(g => g.id)) + 1 : 1;
     setActiveGameId(newGameId);
+  };
+
+  // NEW: Function to set up games for a specific count
+  const setupGamesForSession = (gameCount: number) => {
+    console.log('Setting up games for session:', activeSessionId, 'count:', gameCount);
+    
+    setSessions(prevSessions =>
+      prevSessions.map(session => {
+        if (session.id === activeSessionId) {
+          // Create the exact number of games needed
+          const newGames: Game[] = [];
+          for (let i = 1; i <= gameCount; i++) {
+            newGames.push(createInitialGame(i));
+          }
+          
+          console.log('Created games:', newGames.map(g => g.id));
+          
+          return {
+            ...session,
+            games: newGames,
+            savedToDatabase: false
+          };
+        }
+        return session;
+      })
+    );
+    
+    // Set the first game as active
+    setActiveGameId(1);
   };
 
   const clearGame = (sessionId: number, gameId: number) => {
@@ -464,6 +495,7 @@ export const useBowlingGame = () => {
     enterPins,
     addSession,
     addGameToSession,
+    setupGamesForSession, // NEW: Export this function
     clearGame,
     deleteGame,
     handleBallClick,
