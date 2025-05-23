@@ -30,7 +30,7 @@ const PinButtons: React.FC<PinButtonsProps> = ({
     const targetFrame = editingFrame !== null ? editingFrame : currentFrame;
     const targetBall = editingBall !== null ? editingBall : currentBall;
     
-    if (targetFrame >= 10 || targetBall >= 3 || gameComplete) return 0;
+    if (targetFrame >= 10 || targetBall >= 3 || gameComplete) return -1;
     
     let maxPins = 10;
     
