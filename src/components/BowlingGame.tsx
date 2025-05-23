@@ -12,6 +12,8 @@ interface BowlingGameProps {
   handleBallClick: (frameIndex: number, ballIndex: number) => void;
   toggleVisibility: () => void;
   savedStatus: boolean;
+  isAuthenticated?: boolean;
+  onEditGame?: () => void;
 }
 
 const BowlingGame: React.FC<BowlingGameProps> = ({ 
@@ -22,7 +24,9 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
   clearGame, 
   handleBallClick,
   toggleVisibility,
-  savedStatus
+  savedStatus,
+  isAuthenticated = true,
+  onEditGame
 }) => {
   return (
     <div key={game.id} className="mb-6">
@@ -49,12 +53,21 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
             >
               Clear
             </button>
-            <button
-              onClick={toggleVisibility}
-              className="bg-gray-500 text-white text-xs px-3 py-1 rounded hover:bg-gray-600 transition-colors"
-            >
-              Hide
-            </button>
+            {isAuthenticated ? (
+              <button
+                onClick={toggleVisibility}
+                className="bg-gray-500 text-white text-xs px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+              >
+                Hide
+              </button>
+            ) : (
+              <button
+                onClick={onEditGame}
+                className="bg-blue-500 text-white text-xs px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+              >
+                Edit
+              </button>
+            )}
           </div>
         </div>
         

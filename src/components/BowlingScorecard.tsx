@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Header from './Header';
@@ -44,7 +43,8 @@ const BowlingScorecard = () => {
     markSessionAsSaved,
     toggleSessionVisibility,
     toggleGameVisibility,
-    renameSession
+    renameSession,
+    updateActiveGame
   } = useBowlingGame();
   
   // Navigation handlers for the flow (only for authenticated users)
@@ -147,6 +147,16 @@ const BowlingScorecard = () => {
     }
   };
 
+  // Handle edit for non-authenticated users
+  const handleEditGame = (gameId: number) => {
+    setActiveGameId(gameId);
+    // Set editing to frame 10 (index 9), ball 0
+    updateActiveGame({
+      editingFrame: 9,
+      editingBall: 0
+    });
+  };
+
   // Find the active game for non-authenticated users
   const activeGame = activeSession?.games.find(game => game.id === activeGameId);
   const visibleGames = activeSession?.games.filter(game => game.isVisible) || [];
@@ -219,6 +229,8 @@ const BowlingScorecard = () => {
                 }}
                 toggleVisibility={() => toggleGameVisibility(activeSessionId, game.id)}
                 savedStatus={false}
+                isAuthenticated={isAuthenticated}
+                onEditGame={() => handleEditGame(game.id)}
               />
             ))}
             
