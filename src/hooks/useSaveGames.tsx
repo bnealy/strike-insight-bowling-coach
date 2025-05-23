@@ -40,7 +40,12 @@ export const useSaveGames = () => {
         const visibleGames = session.games.filter(game => game.isVisible);
         
         console.log('Attempting to save session:', session.title, 'with games:', visibleGames.length);
-        console.log('Games to save:', visibleGames.map(g => ({ id: g.id, totalScore: g.totalScore, gameComplete: g.gameComplete })));
+        console.log('Games to save:', visibleGames.map(g => ({ 
+          id: g.id, 
+          totalScore: g.totalScore, 
+          gameComplete: g.gameComplete,
+          resolvedScore: Number(g.totalScore) || 0
+        })));
 
         // Create session in database with the correct total_games count (all visible games)
         const { data: sessionData, error: sessionError } = await supabase
@@ -64,8 +69,10 @@ export const useSaveGames = () => {
         for (const game of visibleGames) {
           console.log('Saving game:', game.id, 'with total score:', game.totalScore, 'complete:', game.gameComplete);
           
-          // Ensure total_score is never null - use 0 as default
-          const totalScore = game.totalScore ?? 0;
+          // Ensure total_score is never null/undefined - use 0 as default and ensure it's a number
+          const totalScore = Number(game.totalScore) || 0;
+          
+          console.log('Resolved total score to:', totalScore);
           
           // Insert game
           const { data: gameData, error: gameError } = await supabase
