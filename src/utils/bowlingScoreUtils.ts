@@ -1,4 +1,3 @@
-
 import { Frame, Game } from '../types/bowlingTypes';
 
 export const isStrike = (frameIndex: number, gameFrames: Frame[]): boolean => {
@@ -57,6 +56,26 @@ export const calculateFrameScore = (frameIndex: number, gameFrames: Frame[]): nu
   }
 };
 
+// Helper function to check if the 10th frame is complete
+export const isTenthFrameComplete = (frame: Frame): boolean => {
+  const firstBall = frame.balls[0];
+  const secondBall = frame.balls[1];
+  const thirdBall = frame.balls[2];
+  
+  // If first ball is a strike, need 2 more balls
+  if (firstBall === 10) {
+    return secondBall !== null && thirdBall !== null;
+  }
+  
+  // If first + second = 10 (spare), need third ball
+  if ((firstBall || 0) + (secondBall || 0) === 10) {
+    return thirdBall !== null;
+  }
+  
+  // Otherwise, just need first two balls
+  return secondBall !== null;
+};
+
 export const calculateScoresForGame = (game: Game): Game => {
   const gameFrames = game.frames;
   const newFrames = [...gameFrames];
@@ -68,13 +87,8 @@ export const calculateScoresForGame = (game: Game): Game => {
     let canScore = false;
     
     if (i === 9) {
-      if (frame.balls[0] === 10) {
-        canScore = frame.balls[1] !== null && frame.balls[2] !== null;
-      } else if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
-        canScore = frame.balls[2] !== null;
-      } else {
-        canScore = frame.balls[1] !== null;
-      }
+      // For 10th frame, use the helper function
+      canScore = isTenthFrameComplete(frame);
     } else {
       if (isStrike(i, gameFrames)) {
         const [next1, next2] = getNextTwoBalls(i, gameFrames);
@@ -99,11 +113,22 @@ export const calculateScoresForGame = (game: Game): Game => {
     }
   }
 
+  // Game is complete when all frames can be scored AND the 10th frame is complete
+  const gameComplete = allFramesComplete && isTenthFrameComplete(newFrames[9]);
+  
+  console.log('Game completion check:', {
+    allFramesComplete,
+    tenthFrameComplete: isTenthFrameComplete(newFrames[9]),
+    gameComplete,
+    tenthFrame: newFrames[9],
+    finalScore: newFrames[9].score
+  });
+
   return {
     ...game,
     frames: newFrames,
     totalScore: runningTotal,
-    gameComplete: allFramesComplete && newFrames[9].score !== null
+    gameComplete
   };
 };
 

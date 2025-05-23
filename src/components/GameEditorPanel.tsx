@@ -36,6 +36,9 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
 }) => {
   const isEditing = editingFrame !== null && editingBall !== null;
   
+  // Add debugging for game completion
+  console.log('GameEditorPanel - gameComplete:', gameComplete, 'frames[9]:', frames[9]);
+  
   return (
     <div className="bg-white bg-opacity-10 p-6 rounded-lg backdrop-filter backdrop-blur-md">
       <h3 className="text-lg font-bold text-white mb-4">
@@ -46,7 +49,7 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
         <div className="mb-4 text-white text-center">
           <p className="text-xl font-bold mb-2">🎉 Congratulations! 🎉</p>
           <p className="text-lg">Game Complete!</p>
-          <p className="text-md">Final Score: {frames[9].score}</p>
+          <p className="text-md">Final Score: {frames[9]?.score || 'N/A'}</p>
         </div>
       ) : (
         <div className="mb-4">
