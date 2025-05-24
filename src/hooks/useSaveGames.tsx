@@ -39,7 +39,8 @@ export const useSaveGames = () => {
         // Only save games that have been started (have at least one frame with data)
         const savableGames = session.games.filter(game => {
           const isVisible = game.isVisible;
-          const hasValidScore = typeof game.totalScore === 'number' && !isNaN(game.totalScore);
+          // Fix: Ensure totalScore is never null/undefined - treat 0 as valid
+          const hasValidScore = typeof game.totalScore === 'number' && !isNaN(game.totalScore) && game.totalScore >= 0;
           const hasFrameData = game.frames && game.frames.some(frame => 
             frame.balls && frame.balls.some(ball => ball !== null)
           );
@@ -63,13 +64,13 @@ export const useSaveGames = () => {
         
         console.log('Saving session:', session.title, 'with', savableGames.length, 'games');
 
-        // Create session in database
+        // Create session in database - Fix: Use the actual count of savable games
         const { data: sessionData, error: sessionError } = await supabase
           .from('bowling_game_sessions')
           .insert([{
             user_id: user.id,
             title: session.title,
-            total_games: savableGames.length
+            total_games: savableGames.length // This should be the count of savable games
           }])
           .select()
           .single();
@@ -81,9 +82,15 @@ export const useSaveGames = () => {
 
         console.log('Created game session:', sessionData);
 
-        // Save games
+        // Save games - Fix: Ensure totalScore is never null
         for (const game of savableGames) {
-          const totalScore = Math.floor(Number(game.totalScore)) || 0;
+          // Ensure totalScore is never null or undefined
+          let totalScore = game.totalScore;
+          if (typeof totalScore !== 'number' || isNaN(totalScore) || totalScore < 0) {
+            console.warn(`Invalid totalScore for game ${game.id}: ${totalScore}, defaulting to 0`);
+            totalScore = 0;
+          }
+          totalScore = Math.floor(totalScore);
           
           console.log('Saving game:', game.id, 'with score:', totalScore);
           
@@ -92,7 +99,7 @@ export const useSaveGames = () => {
             .insert([{
               session_id: sessionData.id,
               game_number: game.id,
-              total_score: totalScore,
+              total_score: totalScore, // This should never be null now
               is_complete: game.gameComplete || false
             }])
             .select()
