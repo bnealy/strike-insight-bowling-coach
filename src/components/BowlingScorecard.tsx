@@ -97,7 +97,13 @@ const BowlingScorecard = () => {
         isVisible: s.isVisible, 
         totalGames: s.games.length,
         visibleGames: s.games.filter(g => g.isVisible).length,
-        gameDetails: s.games.map(g => ({ id: g.id, isVisible: g.isVisible, totalScore: g.totalScore }))
+        gameDetails: s.games.map(g => ({ 
+          id: g.id, 
+          isVisible: g.isVisible, 
+          totalScore: g.totalScore,
+          hasFrames: !!g.frames,
+          frameCount: g.frames?.length || 0
+        }))
       })));
       
       // Get sessions that are visible and have at least one visible game
@@ -105,7 +111,14 @@ const BowlingScorecard = () => {
         const hasVisibleGames = s.isVisible && s.games.some(g => g.isVisible);
         console.log('Session validation:', s.title, 'visible:', s.isVisible, 'hasVisibleGames:', hasVisibleGames, 'gameCount:', s.games.filter(g => g.isVisible).length);
         return hasVisibleGames;
-      });
+      }).map(session => ({
+        ...session,
+        games: session.games.filter(g => g.isVisible).map(game => ({
+          ...game,
+          // Ensure frames are always present
+          frames: game.frames || []
+        }))
+      }));
       
       if (validSessions.length === 0) {
         setSaveError("No sessions with games to save.");
@@ -118,7 +131,11 @@ const BowlingScorecard = () => {
         return;
       }
       
-      console.log('Valid sessions to save:', validSessions.map(s => ({ title: s.title, gameCount: s.games.filter(g => g.isVisible).length })));
+      console.log('Valid sessions to save:', validSessions.map(s => ({ 
+        title: s.title, 
+        gameCount: s.games.length,
+        gamesWithFrames: s.games.filter(g => g.frames && g.frames.length > 0).length
+      })));
       console.log('=== SAVE DEBUG END ===');
       
       const result = await saveGames(validSessions);

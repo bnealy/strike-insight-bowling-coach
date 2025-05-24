@@ -126,7 +126,7 @@ export type Database = {
           id?: string
           is_complete?: boolean
           session_id: string
-          total_score: number
+          total_score?: number
           updated_at?: string
         }
         Update: {
