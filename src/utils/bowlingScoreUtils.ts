@@ -1,3 +1,4 @@
+
 import { Frame, Game } from '../types/bowlingTypes';
 
 export const isStrike = (frameIndex: number, gameFrames: Frame[]): boolean => {
@@ -76,40 +77,67 @@ export const isTenthFrameComplete = (frame: Frame): boolean => {
   return secondBall !== null;
 };
 
+// Helper function to check if we can score a frame
+const canScoreFrame = (frameIndex: number, gameFrames: Frame[]): boolean => {
+  if (frameIndex === 9) {
+    return isTenthFrameComplete(gameFrames[9]);
+  }
+  
+  const frame = gameFrames[frameIndex];
+  
+  // If it's a strike, we need the next two balls
+  if (isStrike(frameIndex, gameFrames)) {
+    if (frameIndex >= 8) return true; // Strikes in frames 9-10 can always be scored
+    
+    const nextFrame = gameFrames[frameIndex + 1];
+    if (isStrike(frameIndex + 1, gameFrames)) {
+      // Strike followed by strike - need ball from frame after next
+      if (frameIndex + 2 >= 10) return true; // Next frame is 10th frame
+      return gameFrames[frameIndex + 2]?.balls[0] !== null;
+    } else {
+      // Strike followed by non-strike - need both balls from next frame
+      return nextFrame?.balls[0] !== null && nextFrame?.balls[1] !== null;
+    }
+  }
+  
+  // If second ball hasn't been thrown yet, can't score
+  if (frame.balls[1] === null) return false;
+  
+  // If it's a spare, we need the next ball
+  if (isSpare(frameIndex, gameFrames)) {
+    if (frameIndex >= 9) return true; // Spare in 10th frame can be scored
+    return gameFrames[frameIndex + 1]?.balls[0] !== null;
+  }
+  
+  // Regular frame (no strike or spare) can always be scored once both balls are thrown
+  return true;
+};
+
 export const calculateScoresForGame = (game: Game): Game => {
   const gameFrames = game.frames;
   const newFrames = [...gameFrames];
   let runningTotal = 0;
   let allFramesComplete = true;
 
-  for (let i = 0; i < 10; i++) {
-    const frame = newFrames[i];
-    let canScore = false;
-    
-    if (i === 9) {
-      // For 10th frame, use the helper function
-      canScore = isTenthFrameComplete(frame);
-    } else {
-      if (isStrike(i, gameFrames)) {
-        const [next1, next2] = getNextTwoBalls(i, gameFrames);
-        canScore = next1 !== 0 || next2 !== 0 || i >= 8;
-      } else if (frame.balls[1] !== null) {
-        if (isSpare(i, gameFrames)) {
-          const nextBall = getNextBall(i, gameFrames);
-          canScore = nextBall !== 0 || i >= 8;
-        } else {
-          canScore = true;
-        }
-      }
-    }
+  console.log('Starting score calculation for game:', game.id);
+  console.log('Game frames:', gameFrames.map((f, i) => ({ frame: i + 1, balls: f.balls })));
 
+  for (let i = 0; i < 10; i++) {
+    const canScore = canScoreFrame(i, gameFrames);
+    
+    console.log(`Frame ${i + 1}: canScore=${canScore}, balls=${gameFrames[i].balls}`);
+    
     if (canScore) {
       const frameScore = calculateFrameScore(i, gameFrames);
       runningTotal += frameScore;
       newFrames[i].score = runningTotal;
+      
+      console.log(`Frame ${i + 1}: scored ${frameScore}, running total: ${runningTotal}`);
     } else {
       newFrames[i].score = null;
       allFramesComplete = false;
+      
+      console.log(`Frame ${i + 1}: cannot score yet`);
     }
   }
 
@@ -124,7 +152,7 @@ export const calculateScoresForGame = (game: Game): Game => {
     finalScore: newFrames[9].score
   });
 
-  // Fix: Ensure totalScore is never null or undefined
+  // Ensure totalScore is never null or undefined
   const totalScore = typeof runningTotal === 'number' && !isNaN(runningTotal) && runningTotal >= 0 
     ? runningTotal 
     : 0;
@@ -132,7 +160,7 @@ export const calculateScoresForGame = (game: Game): Game => {
   return {
     ...game,
     frames: newFrames,
-    totalScore: totalScore, // This should never be null/undefined now
+    totalScore: totalScore,
     gameComplete
   };
 };
