@@ -124,10 +124,15 @@ export const calculateScoresForGame = (game: Game): Game => {
     finalScore: newFrames[9].score
   });
 
+  // Fix: Ensure totalScore is never null or undefined
+  const totalScore = typeof runningTotal === 'number' && !isNaN(runningTotal) && runningTotal >= 0 
+    ? runningTotal 
+    : 0;
+
   return {
     ...game,
     frames: newFrames,
-    totalScore: runningTotal,
+    totalScore: totalScore, // This should never be null/undefined now
     gameComplete
   };
 };
