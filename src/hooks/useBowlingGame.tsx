@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Game, Frame, SaveGameResult } from '../types/bowlingTypes';
 import { calculateScoresForGame } from '../utils/bowlingScoreUtils';
@@ -52,7 +53,7 @@ export const useBowlingGame = () => {
       frames: initialFrames,
       currentFrame: 0,
       currentBall: 0,
-      totalScore: 0, // Initialize to 0 instead of null/undefined
+      totalScore: 0, // Ensure this is always 0, never null/undefined
       gameComplete: false,
       editingFrame: null,
       editingBall: null,
@@ -83,14 +84,20 @@ export const useBowlingGame = () => {
     if (!activeGame) return;
     
     const updatedGame = calculateScoresForGame(activeGame);
+    
+    // Fix: Ensure totalScore is never null or undefined
+    const newTotalScore = typeof updatedGame.totalScore === 'number' && !isNaN(updatedGame.totalScore) 
+      ? updatedGame.totalScore 
+      : 0;
+    
     if (
-      updatedGame.totalScore !== activeGame.totalScore || 
+      newTotalScore !== activeGame.totalScore || 
       JSON.stringify(updatedGame.frames) !== JSON.stringify(activeGame.frames) ||
       updatedGame.gameComplete !== activeGame.gameComplete
     ) {
       updateActiveGame({
         frames: updatedGame.frames,
-        totalScore: updatedGame.totalScore || 0, // Ensure we never set null/undefined
+        totalScore: newTotalScore, // Ensure we never set null/undefined
         gameComplete: updatedGame.gameComplete
       });
     }
@@ -354,7 +361,7 @@ export const useBowlingGame = () => {
                   frames: clearedFrames,
                   currentFrame: 0,
                   currentBall: 0,
-                  totalScore: 0,
+                  totalScore: 0, // Ensure this is always 0, never null/undefined
                   gameComplete: false,
                   editingFrame: null,
                   editingBall: null
