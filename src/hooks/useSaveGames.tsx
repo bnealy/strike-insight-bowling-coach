@@ -39,8 +39,8 @@ export const useSaveGames = () => {
         // Only save games that have been started (have at least one frame with data)
         const savableGames = session.games.filter(game => {
           const isVisible = game.isVisible;
-          // Fix: Ensure totalScore is never null/undefined - treat 0 as valid
-          const hasValidScore = typeof game.totalScore === 'number' && !isNaN(game.totalScore) && game.totalScore >= 0;
+          // Fix: Check if totalScore is a valid number (including 0)
+          const hasValidScore = typeof game.totalScore === 'number' && !isNaN(game.totalScore);
           const hasFrameData = game.frames && game.frames.some(frame => 
             frame.balls && frame.balls.some(ball => ball !== null)
           );
@@ -64,13 +64,13 @@ export const useSaveGames = () => {
         
         console.log('Saving session:', session.title, 'with', savableGames.length, 'games');
 
-        // Create session in database - Fix: Use the actual count of savable games
+        // Create session in database
         const { data: sessionData, error: sessionError } = await supabase
           .from('bowling_game_sessions')
           .insert([{
             user_id: user.id,
             title: session.title,
-            total_games: savableGames.length // This should be the count of savable games
+            total_games: savableGames.length
           }])
           .select()
           .single();
@@ -82,11 +82,11 @@ export const useSaveGames = () => {
 
         console.log('Created game session:', sessionData);
 
-        // Save games - Fix: Ensure totalScore is never null
+        // Save games
         for (const game of savableGames) {
           // Ensure totalScore is never null or undefined
           let totalScore = game.totalScore;
-          if (typeof totalScore !== 'number' || isNaN(totalScore) || totalScore < 0) {
+          if (typeof totalScore !== 'number' || isNaN(totalScore)) {
             console.warn(`Invalid totalScore for game ${game.id}: ${totalScore}, defaulting to 0`);
             totalScore = 0;
           }
@@ -99,7 +99,7 @@ export const useSaveGames = () => {
             .insert([{
               session_id: sessionData.id,
               game_number: game.id,
-              total_score: totalScore, // This should never be null now
+              total_score: totalScore,
               is_complete: game.gameComplete || false
             }])
             .select()
