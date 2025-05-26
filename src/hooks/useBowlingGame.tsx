@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Game, Frame, SaveGameResult } from '../types/bowlingTypes';
 import { calculateScoresForGame } from '../utils/bowlingScoreUtils';
@@ -40,8 +39,8 @@ export const useBowlingGame = () => {
   // Create initial game
   function createInitialGame(id: number): Game {
     const initialFrames: Frame[] = [];
-    for (let i = 0; i < 10; i++) {
-      if (i === 9) {
+    for (let frameNumber = 1; frameNumber <= 10; frameNumber++) {
+      if (frameNumber === 10) {
         initialFrames.push({ balls: [null, null, null], score: null });
       } else {
         initialFrames.push({ balls: [null, null], score: null });
@@ -51,9 +50,9 @@ export const useBowlingGame = () => {
     return {
       id,
       frames: initialFrames,
-      currentFrame: 0,
+      currentFrame: 1, // Start at frame 1
       currentBall: 0,
-      totalScore: 0, // Ensure this is always 0, never null/undefined
+      totalScore: 0,
       gameComplete: false,
       editingFrame: null,
       editingBall: null,
@@ -62,22 +61,27 @@ export const useBowlingGame = () => {
   }
 
   const updateActiveGame = useCallback((updates: Partial<Game>) => {
-    setSessions(prevSessions => 
-      prevSessions.map(session => {
+    setSessions(prevSessions => {
+      return prevSessions.map(session => {
         if (session.id === activeSessionId) {
           return {
             ...session,
             games: session.games.map(game => 
               game.id === activeGameId 
-                ? { ...game, ...updates }
+                ? { 
+                    ...game,
+                    ...updates,
+                    frames: updates.frames || game.frames,
+                    totalScore: typeof updates.totalScore === 'number' ? updates.totalScore : game.totalScore
+                  }
                 : game
             ),
-            savedToDatabase: false // Mark as not saved when changes occur
+            savedToDatabase: false
           };
         }
         return session;
-      })
-    );
+      });
+    });
   }, [activeSessionId, activeGameId]);
 
   useEffect(() => {
@@ -85,7 +89,6 @@ export const useBowlingGame = () => {
     
     const updatedGame = calculateScoresForGame(activeGame);
     
-    // Fix: Ensure totalScore is never null or undefined
     const newTotalScore = typeof updatedGame.totalScore === 'number' && !isNaN(updatedGame.totalScore) 
       ? updatedGame.totalScore 
       : 0;
@@ -97,7 +100,7 @@ export const useBowlingGame = () => {
     ) {
       updateActiveGame({
         frames: updatedGame.frames,
-        totalScore: newTotalScore, // Ensure we never set null/undefined
+        totalScore: newTotalScore,
         gameComplete: updatedGame.gameComplete
       });
     }
@@ -117,10 +120,11 @@ export const useBowlingGame = () => {
       targetBall = activeGame.currentBall;
     }
     
-    const frame = newFrames[targetFrame];
+    const frameIndex = targetFrame - 1;
+    const frame = newFrames[frameIndex];
     
     if (activeGame.editingFrame !== null && activeGame.editingBall !== null) {
-      if (targetFrame === 9) {
+      if (targetFrame === 10) {
         for (let i = targetBall; i < 3; i++) {
           frame.balls[i] = null;
         }
@@ -130,12 +134,12 @@ export const useBowlingGame = () => {
         }
       }
       
-      for (let i = targetFrame; i < 10; i++) {
+      for (let i = frameIndex; i < 10; i++) {
         newFrames[i].score = null;
       }
     }
     
-    if (targetFrame < 9) {
+    if (targetFrame < 10) {
       if (targetBall === 0) {
         if (pins > 10) return;
         frame.balls[0] = pins;
@@ -146,7 +150,7 @@ export const useBowlingGame = () => {
               frames: newFrames,
               editingFrame: null,
               editingBall: null,
-              currentFrame: targetFrame < 9 ? targetFrame + 1 : targetFrame,
+              currentFrame: targetFrame < 10 ? targetFrame + 1 : targetFrame,
               currentBall: 0
             });
           } else {
@@ -169,7 +173,7 @@ export const useBowlingGame = () => {
             });
           }
         }
-      } else if (targetBall === 1) {
+      } else {
         if ((frame.balls[0] || 0) + pins > 10) return;
         frame.balls[1] = pins;
         
@@ -178,7 +182,7 @@ export const useBowlingGame = () => {
             frames: newFrames,
             editingFrame: null,
             editingBall: null,
-            currentFrame: targetFrame < 9 ? targetFrame + 1 : targetFrame,
+            currentFrame: targetFrame < 10 ? targetFrame + 1 : targetFrame,
             currentBall: 0
           });
         } else {
@@ -222,44 +226,33 @@ export const useBowlingGame = () => {
             });
           }
         } else {
-          if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
-            if (pins > 10) return;
-            frame.balls[1] = pins;
-            
-            if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
-              if (activeGame.editingFrame !== null) {
-                updateActiveGame({
-                  frames: newFrames,
-                  editingBall: 2
-                });
-              } else {
-                updateActiveGame({
-                  frames: newFrames,
-                  currentBall: 2
-                });
-              }
+          if ((frame.balls[0] || 0) + pins > 10) return;
+          frame.balls[1] = pins;
+          
+          if ((frame.balls[0] || 0) + pins === 10) {
+            if (activeGame.editingFrame !== null) {
+              updateActiveGame({
+                frames: newFrames,
+                editingBall: 2
+              });
             } else {
               updateActiveGame({
                 frames: newFrames,
-                editingFrame: null,
-                editingBall: null,
-                currentBall: 3
+                currentBall: 2
               });
             }
           } else {
-            return;
+            updateActiveGame({
+              frames: newFrames,
+              editingFrame: null,
+              editingBall: null,
+              currentBall: 3
+            });
           }
         }
       } else if (targetBall === 2) {
-        if (frame.balls[0] === 10) {
-          if (pins > 10) return;
-          frame.balls[2] = pins;
-        } else if ((frame.balls[0] || 0) + (frame.balls[1] || 0) === 10) {
-          if (pins > 10) return;
-          frame.balls[2] = pins;
-        } else {
-          return;
-        }
+        if (pins > 10) return;
+        frame.balls[2] = pins;
         
         updateActiveGame({
           frames: newFrames,
@@ -269,6 +262,17 @@ export const useBowlingGame = () => {
         });
       }
     }
+    
+    const updatedGame = calculateScoresForGame({
+      ...activeGame,
+      frames: newFrames
+    });
+    
+    updateActiveGame({
+      frames: updatedGame.frames,
+      totalScore: updatedGame.totalScore,
+      gameComplete: updatedGame.gameComplete
+    });
   };
 
   const addSession = () => {
@@ -312,8 +316,6 @@ export const useBowlingGame = () => {
 
   // NEW: Function to set up games for a specific count
   const setupGamesForSession = (gameCount: number) => {
-    console.log('Setting up games for session:', activeSessionId, 'count:', gameCount);
-    
     setSessions(prevSessions =>
       prevSessions.map(session => {
         if (session.id === activeSessionId) {
@@ -322,8 +324,6 @@ export const useBowlingGame = () => {
           for (let i = 1; i <= gameCount; i++) {
             newGames.push(createInitialGame(i));
           }
-          
-          console.log('Created games:', newGames.map(g => g.id));
           
           return {
             ...session,
@@ -359,9 +359,9 @@ export const useBowlingGame = () => {
                 return {
                   ...game,
                   frames: clearedFrames,
-                  currentFrame: 0,
+                  currentFrame: 1,
                   currentBall: 0,
-                  totalScore: 0, // Ensure this is always 0, never null/undefined
+                  totalScore: 0,
                   gameComplete: false,
                   editingFrame: null,
                   editingBall: null
@@ -502,7 +502,7 @@ export const useBowlingGame = () => {
     enterPins,
     addSession,
     addGameToSession,
-    setupGamesForSession, // NEW: Export this function
+    setupGamesForSession,
     clearGame,
     deleteGame,
     handleBallClick,
@@ -514,6 +514,7 @@ export const useBowlingGame = () => {
     hasUnsavedGames,
     fetchUserGames,
     handleSaveGames,
+    saveSessionsToDatabase,
     isSaving
   };
 };

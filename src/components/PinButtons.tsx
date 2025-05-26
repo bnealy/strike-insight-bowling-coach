@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CSSProperties } from 'react';
 import { Frame } from '../types/bowlingTypes';
@@ -31,13 +30,14 @@ const PinButtons: React.FC<PinButtonsProps> = ({
     const targetBall = editingBall !== null ? editingBall : currentBall;
     
     // If not in edit mode and no valid target, return -1
-    if (editingFrame === null && (targetFrame >= 10 || targetBall >= 3)) return -1;
+    if (editingFrame === null && (targetFrame > 10 || targetBall >= 3)) return -1;
     
     let maxPins = 10;
+    const frameIndex = targetFrame - 1; // Convert to 0-based index for array access
     
-    if (targetFrame < 9) {
+    if (targetFrame < 10) {
       if (targetBall === 1) {
-        maxPins = 10 - (frames[targetFrame].balls[0] || 0);
+        maxPins = 10 - (frames[frameIndex].balls[0] || 0);
       }
     } else {
       if (targetBall === 1 && frames[9].balls[0] === 10) {
@@ -61,54 +61,22 @@ const PinButtons: React.FC<PinButtonsProps> = ({
     
     return maxPins;
   };
-
-  const renderButtons = () => {
-    const maxPins = getMaxPins();
-    
-    // Don't render any buttons if maxPins is -1 (invalid frame/ball and not in edit mode)
-    if (maxPins < 0) {
-      return null;
-    }
-    
-    const buttons = [];
-    
-    for (let i = 0; i <= maxPins; i++) {
-      buttons.push(
-        <div
-          key={i}
-          style={cssProps({
-            width: '50px',
-            height: '50px',
-            borderRadius: '50%',
-            background: '#4CAF50',
-            color: 'white',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none'
-          })}
-          onClick={() => onPinClick(i)}
-        >
-          {i}
-        </div>
-      );
-    }
-    
-    return buttons;
-  };
-
+  
+  const maxPins = getMaxPins();
+  
+  if (maxPins < 0 || gameComplete) return null;
+  
   return (
-    <div style={cssProps({
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '10px',
-      justifyContent: 'center',
-      marginBottom: '20px'
-    })}>
-      {renderButtons()}
+    <div className="grid grid-cols-4 gap-2">
+      {Array.from({ length: maxPins + 1 }, (_, i) => (
+        <button
+          key={i}
+          onClick={() => onPinClick(i)}
+          className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-2 rounded transition-colors"
+        >
+          {i === 0 ? '-' : i}
+        </button>
+      ))}
     </div>
   );
 };

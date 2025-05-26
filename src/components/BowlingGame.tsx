@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Game } from '../types/bowlingTypes';
 import BowlingFrameDisplay from './BowlingFrameDisplay';
@@ -9,7 +8,7 @@ interface BowlingGameProps {
   gameIndex: number;
   setActiveGameId: (id: number) => void;
   clearGame: () => void;
-  handleBallClick: (frameIndex: number, ballIndex: number) => void;
+  handleBallClick: (frameNumber: number, ballIndex: number) => void;
   toggleVisibility: () => void;
   savedStatus: boolean;
   isAuthenticated?: boolean;
@@ -72,13 +71,13 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
         </div>
         
         <div className="flex gap-[2px] mb-5 overflow-x-auto pb-2">
-          {game.frames.map((frame, frameIndex) => (
+          {game.frames.map((frame, index) => (
             <BowlingFrameDisplay
-              key={frameIndex}
+              key={index}
               frame={frame}
-              frameIndex={frameIndex}
-              isCurrentFrame={isActive && frameIndex === game.currentFrame}
-              isEditing={isActive && game.editingFrame === frameIndex}
+              frameNumber={index + 1}
+              isCurrentFrame={isActive && index + 1 === game.currentFrame}
+              isEditing={isActive && game.editingFrame === index + 1}
               handleBallClick={handleBallClick}
               frames={game.frames}
             />

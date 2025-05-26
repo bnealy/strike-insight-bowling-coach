@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Frame } from '../types/bowlingTypes';
 import PinButtons from './PinButtons';
@@ -52,7 +51,7 @@ const GameEditorPanel: React.FC<GameEditorPanelProps> = ({
         frames={frames}
         editingFrame={editingFrame}
         editingBall={editingBall}
-        gameComplete={false}
+        gameComplete={gameComplete}
       />
     </div>
   );

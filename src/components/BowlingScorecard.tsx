@@ -1,26 +1,15 @@
-
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useGameManagement } from '../hooks/useGameManagement';
 import Header from './Header';
 import AuthModal from './AuthModal';
-import SaveGameAlert from './alerts/SaveGameAlert';
 import SignInRequiredDialog from './alerts/SignInRequiredDialog';
-import AuthenticatedBowlingFlow from './AuthenticatedBowlingFlow';
-import GuestBowlingInterface from './GuestBowlingInterface';
-import { useGameManagement } from '../hooks/useGameManagement';
+import SaveGameAlert from './alerts/SaveGameAlert';
+import GameEntryScreen from './flow/GameEntryScreen';
 
 const BowlingScorecard = () => {
   const { isAuthenticated } = useAuth();
   const gameManagement = useGameManagement();
-
-  const handleDeleteGame = (gameId: number) => {
-    gameManagement.deleteGame(gameManagement.activeSessionId, gameId);
-    
-    const remainingGames = gameManagement.activeSession?.games.filter(g => g.isVisible && g.id !== gameId) || [];
-    if (remainingGames.length > 0 && gameId === gameManagement.activeGameId) {
-      gameManagement.setActiveGameId(remainingGames[0].id);
-    }
-  };
 
   return (
     <div className="max-w-[1200px] mx-auto p-5 min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 font-sans">
@@ -33,51 +22,33 @@ const BowlingScorecard = () => {
       />
       
       <SaveGameAlert 
-        showSuccess={gameManagement.showSaveSuccess} 
+        showSuccess={false} 
         errorMessage={gameManagement.saveError} 
       />
       
       <SignInRequiredDialog 
         isOpen={gameManagement.showSignInDialog} 
         onClose={() => gameManagement.setShowSignInDialog(false)} 
-        onSignIn={gameManagement.handleOpenAuthModal}
+        onSignIn={() => gameManagement.setIsAuthModalOpen(true)}
       />
       
-      {isAuthenticated ? (
-        <AuthenticatedBowlingFlow
-          flowState={gameManagement.flowState}
-          activeSession={gameManagement.activeSession}
-          activeSessionId={gameManagement.activeSessionId}
-          activeGameId={gameManagement.activeGameId}
-          onNextStep={gameManagement.handleNextStep}
-          onPreviousStep={gameManagement.handlePreviousStep}
-          onGameCountChange={gameManagement.handleGameCountChange}
-          setActiveGameId={gameManagement.setActiveGameId}
-          clearGame={gameManagement.clearGame}
-          handleBallClick={gameManagement.handleBallClick}
-          toggleGameVisibility={gameManagement.toggleGameVisibility}
-          enterPins={gameManagement.enterPins}
-          cancelEdit={gameManagement.cancelEdit}
-          addGameToSession={gameManagement.addGameToSession}
-          hasUnsavedGames={gameManagement.hasUnsavedGames}
-          onSaveGames={gameManagement.handleSaveGames}
-        />
-      ) : (
-        <GuestBowlingInterface
-          activeSession={gameManagement.activeSession}
-          activeGameId={gameManagement.activeGameId}
-          addGameToSession={gameManagement.addGameToSession}
-          onSaveGames={gameManagement.handleSaveGames}
-          setActiveGameId={gameManagement.setActiveGameId}
-          clearGame={gameManagement.clearGame}
-          handleBallClick={gameManagement.handleBallClick}
-          toggleGameVisibility={gameManagement.toggleGameVisibility}
-          onDeleteGame={handleDeleteGame}
-          enterPins={gameManagement.enterPins}
-          cancelEdit={gameManagement.cancelEdit}
-          activeSessionId={gameManagement.activeSessionId}
-        />
-      )}
+      <GameEntryScreen 
+        gameCount={1}
+        activeSession={gameManagement.activeSession}
+        activeSessionId={gameManagement.activeSessionId}
+        activeGameId={gameManagement.activeGameId}
+        games={gameManagement.activeSession?.games || []}
+        setActiveGameId={gameManagement.setActiveGameId}
+        clearGame={gameManagement.clearGame}
+        handleBallClick={gameManagement.handleBallClick}
+        toggleGameVisibility={gameManagement.toggleGameVisibility}
+        enterPins={gameManagement.enterPins}
+        cancelEdit={gameManagement.cancelEdit}
+        addGameToSession={gameManagement.addGameToSession}
+        hasUnsavedGames={gameManagement.hasUnsavedGames}
+        onSaveGames={gameManagement.handleSaveGames}
+        onBack={() => {}}
+      />
       
       <AuthModal 
         isOpen={gameManagement.isAuthModalOpen} 

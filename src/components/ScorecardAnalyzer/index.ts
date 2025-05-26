@@ -1,0 +1,1 @@
+export { ScorecardAnalyzer } from './ScorecardAnalyzer'; 

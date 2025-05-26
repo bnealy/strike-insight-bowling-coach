@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { BowlingFlowStep } from '@/types/flowTypes';
 import BowlingGame from '../BowlingGame';
 import GameEditorPanel from '../GameEditorPanel';
+import PhotoUploader from '../PhotoUploader';
 import { Game } from '@/types/bowlingTypes';
 
 interface GameEntryScreenProps {
@@ -12,19 +12,18 @@ interface GameEntryScreenProps {
   activeSessionId: number;
   activeGameId: number;
   games: Game[];
-  onBack: (prevStep: BowlingFlowStep) => void;
+  onBack: (prevStep: string) => void;
   setActiveGameId: (id: number) => void;
   clearGame: (sessionId: number, gameId: number) => void;
   handleBallClick: (frameIndex: number, ballIndex: number) => void;
   toggleGameVisibility: (sessionId: number, gameId: number) => void;
   enterPins: (pins: number) => void;
   cancelEdit: () => void;
-  hasUnsavedGames: boolean;
-  onSaveGames: () => Promise<void>;
-  addGameToSession: () => void;
+  activeGame?: Game;
+  activeGameIndex?: number;
 }
 
-const GameEntryScreen: React.FC<GameEntryScreenProps> = ({ 
+const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   gameCount,
   activeSession,
   activeSessionId,
@@ -37,90 +36,115 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   toggleGameVisibility,
   enterPins,
   cancelEdit,
-  hasUnsavedGames,
-  onSaveGames,
-  addGameToSession
+  activeGame,
+  activeGameIndex = 0,
 }) => {
-  // Find the active game
-  const activeGame = games.find(game => game.id === activeGameId);
-  const visibleGames = games.filter(game => game.isVisible);
-  const activeGameIndex = visibleGames.findIndex(g => g.id === activeGameId);
+  const handleScoresDetected = (scores: Array<{
+    frameNumber: number,
+    ball1: number | null,
+    ball2: number | null,
+    ball3: number | null
+  }>) => {
+    // Process each frame's scores in sequence
+    scores.forEach((frame, index) => {
+      if (frame.ball1 !== null) {
+        handleBallClick(index, 0);
+        enterPins(frame.ball1);
+      }
+      if (frame.ball2 !== null) {
+        handleBallClick(index, 1);
+        enterPins(frame.ball2);
+      }
+      if (index === 9 && frame.ball3 !== null) {
+        handleBallClick(index, 2);
+        enterPins(frame.ball3);
+      }
+    });
+  };
 
   return (
-    <div className="w-full">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white">
-            {activeSession?.title || "New Session"}
-            {activeSession?.savedToDatabase && (
-              <span className="ml-2 text-sm bg-green-500 text-white px-2 py-1 rounded-full">
-                Saved
-              </span>
-            )}
-          </h2>
-          <div className="flex gap-4">
-            <button
-              onClick={addGameToSession}
-              className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg shadow hover:from-green-500 hover:to-green-700 transition-all duration-200"
-            >
-              Add Another Game
-            </button>
-            
-            <button
-              onClick={onSaveGames}
-              className="bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 px-4 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 transition-all duration-200"
-            >
-              Save Games
-            </button>
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-4">
+        <Button
+          variant="outline"
+          onClick={() => onBack('SESSION_SETUP')}
+          className="text-white"
+        >
+          Back
+        </Button>
+        <h2 className="text-2xl font-bold text-white">Game Entry</h2>
+        <div className="w-[70px]" /> {/* Spacer for alignment */}
+      </div>
+
+      <PhotoUploader onScoresDetected={handleScoresDetected} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+        <div className="space-y-4">
+          <div className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md rounded-lg p-6">
+            <h3 className="text-lg font-bold text-white mb-4">Games</h3>
+            <div className="space-y-2">
+              {games.map((game, index) => (
+                <div
+                  key={game.id}
+                  className="flex items-center justify-between bg-white bg-opacity-5 rounded p-3"
+                >
+                  <span className="text-white">Game {index + 1}</span>
+                  <div className="space-x-2">
+                    <Button
+                      variant={game.id === activeGameId ? "default" : "outline"}
+                      onClick={() => setActiveGameId(game.id)}
+                      className="text-white"
+                    >
+                      {game.id === activeGameId ? "Editing" : "Edit"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => clearGame(activeSessionId, game.id)}
+                      className="text-white"
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      variant={game.isVisible ? "default" : "outline"}
+                      onClick={() => toggleGameVisibility(activeSessionId, game.id)}
+                      className="text-white"
+                    >
+                      {game.isVisible ? "Visible" : "Hidden"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        
-        {visibleGames.map((game, index) => (
-          <BowlingGame
-            key={game.id}
-            game={game}
-            isActive={game.id === activeGameId}
-            gameIndex={index}
-            setActiveGameId={setActiveGameId}
-            clearGame={() => clearGame(activeSessionId, game.id)}
-            handleBallClick={(frameIndex, ballIndex) => {
-              setActiveGameId(game.id);
-              handleBallClick(frameIndex, ballIndex);
-            }}
-            toggleVisibility={() => toggleGameVisibility(activeSessionId, game.id)}
-            savedStatus={activeSession?.savedToDatabase}
-          />
-        ))}
-        
-        {visibleGames.length === 0 && (
-          <div className="bg-white bg-opacity-10 p-4 rounded-lg text-center text-white">
-            <p>No visible games in this session. Add a game to get started.</p>
-          </div>
-        )}
-      </div>
-      
-      {activeGame && (
-        <GameEditorPanel
-          gameIndex={activeGameIndex}
-          currentFrame={activeGame.currentFrame || 0}
-          currentBall={activeGame.currentBall || 0}
-          frames={activeGame.frames || []}
-          editingFrame={activeGame.editingFrame}
-          editingBall={activeGame.editingBall}
-          gameComplete={activeGame.gameComplete || false}
-          enterPins={enterPins}
-          cancelEdit={cancelEdit}
-        />
-      )}
-      
-      <div className="flex justify-start mt-6 mb-10">
-        <Button 
-          onClick={() => onBack('gameCount')}
-          variant="outline"
-          className="text-white border-white"
-        >
-          Change Game Count
-        </Button>
+
+        <div className="space-y-4">
+          {activeGame && (
+            <>
+              <BowlingGame
+                game={activeGame}
+                isActive={true}
+                gameIndex={activeGameIndex}
+                setActiveGameId={setActiveGameId}
+                clearGame={() => clearGame(activeSessionId, activeGame.id)}
+                handleBallClick={handleBallClick}
+                toggleVisibility={() => toggleGameVisibility(activeSessionId, activeGame.id)}
+                savedStatus={activeSession?.savedToDatabase}
+              />
+              <GameEditorPanel
+                gameIndex={activeGameIndex}
+                currentFrame={activeGame.currentFrame || 0}
+                currentBall={activeGame.currentBall || 0}
+                frames={activeGame.frames || []}
+                editingFrame={activeGame.editingFrame}
+                editingBall={activeGame.editingBall}
+                gameComplete={activeGame.gameComplete || false}
+                enterPins={enterPins}
+                cancelEdit={cancelEdit}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

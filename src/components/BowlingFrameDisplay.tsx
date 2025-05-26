@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Frame } from '../types/bowlingTypes';
 import { formatBall } from '../utils/bowlingScoreUtils';
@@ -9,16 +8,16 @@ const cssProps = <T extends Record<string, any>>(props: T): CSSProperties => pro
 
 interface BowlingFrameDisplayProps {
   frame: Frame;
-  frameIndex: number;
+  frameNumber: number;
   isCurrentFrame: boolean;
   isEditing: boolean;
-  handleBallClick: (frameIndex: number, ballIndex: number) => void;
+  handleBallClick: (frameNumber: number, ballIndex: number) => void;
   frames: Frame[];
 }
 
 const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({ 
   frame, 
-  frameIndex, 
+  frameNumber, 
   isCurrentFrame, 
   isEditing, 
   handleBallClick,
@@ -26,9 +25,9 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
 }) => {
   return (
     <div 
-      key={frameIndex}
+      key={frameNumber}
       style={cssProps({
-        flex: frameIndex === 9 ? 1.5 : 1,
+        flex: frameNumber === 10 ? 1.5 : 1,
         border: isCurrentFrame ? '2px solid #4CAF50' : '2px solid #333',
         background: isCurrentFrame ? '#f0f8f0' : 'white',
         minHeight: '80px',
@@ -42,16 +41,16 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
         fontSize: '12px',
         fontWeight: 'bold'
       })}>
-        {frameIndex + 1}
+        {frameNumber}
       </div>
       
       <div style={cssProps({
-        display: frameIndex === 9 ? 'grid' : 'flex',
-        gridTemplateColumns: frameIndex === 9 ? '1fr 1fr 1fr' : undefined,
+        display: frameNumber === 10 ? 'grid' : 'flex',
+        gridTemplateColumns: frameNumber === 10 ? '1fr 1fr 1fr' : undefined,
         height: '40px',
         marginTop: '15px'
       })}>
-        {frameIndex === 9 ? (
+        {frameNumber === 10 ? (
           <>
             {[0, 1, 2].map(ballIndex => (
               <div
@@ -66,9 +65,9 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
                   cursor: 'pointer',
                   backgroundColor: isEditing && frame.balls[ballIndex] !== null ? '#fff3cd' : '#f8f9fa'
                 })}
-                onClick={() => handleBallClick(frameIndex, ballIndex)}
+                onClick={() => handleBallClick(frameNumber, ballIndex)}
               >
-                {formatBall(frame.balls[ballIndex], frameIndex, ballIndex, frames)}
+                {formatBall(frame.balls[ballIndex], frameNumber, ballIndex, frames)}
               </div>
             ))}
           </>
@@ -88,9 +87,9 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
                   cursor: 'pointer',
                   backgroundColor: isEditing && frame.balls[ballIndex] !== null ? '#fff3cd' : '#f8f9fa'
                 })}
-                onClick={() => handleBallClick(frameIndex, ballIndex)}
+                onClick={() => handleBallClick(frameNumber, ballIndex)}
               >
-                {formatBall(frame.balls[ballIndex], frameIndex, ballIndex, frames)}
+                {formatBall(frame.balls[ballIndex], frameNumber, ballIndex, frames)}
               </div>
             ))}
           </>
@@ -98,14 +97,10 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
       </div>
       
       <div style={cssProps({
-        height: '25px',
-        borderTop: '1px solid #333',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#f5f5f5',
-        fontWeight: 'bold',
-        fontSize: '14px'
+        textAlign: 'center',
+        marginTop: '5px',
+        fontSize: '14px',
+        fontWeight: 'bold'
       })}>
         {frame.score !== null ? frame.score : ''}
       </div>

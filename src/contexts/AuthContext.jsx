@@ -272,7 +272,6 @@ export const AuthProvider = ({ children }) => {
         for (let i = 0; i < games.length; i++) {
           const game = games[i];
           
-          // Insert the game
           const { data: gameData, error: gameError } = await supabase
             .from('bowling_games')
             .insert({
@@ -285,29 +284,26 @@ export const AuthProvider = ({ children }) => {
             .single();
           
           if (gameError) {
-            console.error(`Error saving game ${i + 1}:`, gameError);
-            continue;
+            throw gameError;
           }
           
-          console.log(`Saved game ${i + 1}:`, gameData);
-          
-          // Save each frame for the game
           for (let j = 0; j < game.frames.length; j++) {
             const frame = game.frames[j];
+            const frameNumber = j + 1;
             
             const { error: frameError } = await supabase
               .from('bowling_frames')
               .insert({
                 game_id: gameData.id,
-                frame_number: j,
+                frame_number: frameNumber,
                 ball1_pins: frame.balls[0],
                 ball2_pins: frame.balls[1],
-                ball3_pins: j === 9 ? frame.balls[2] : null, // Only 10th frame has a 3rd ball
+                ball3_pins: frameNumber === 10 ? frame.balls[2] : null,
                 score: frame.score
               });
             
             if (frameError) {
-              console.error(`Error saving frame ${j + 1} for game ${i + 1}:`, frameError);
+              throw frameError;
             }
           }
         }
@@ -319,7 +315,6 @@ export const AuthProvider = ({ children }) => {
         
         return { success: true, sessionId: sessionData.id };
       } catch (error) {
-        console.error('Error saving games:', error);
         return { success: false, error: error.message || 'An unexpected error occurred while saving games' };
       }
     },
@@ -354,12 +349,10 @@ export const AuthProvider = ({ children }) => {
     
     getSavedGameDetails: async (sessionId) => {
       if (!user) {
-        console.log('Cannot get saved game details: User not logged in');
         return null;
       }
 
       try {
-        // Fetch the session first to verify user ownership
         const { data: session, error: sessionError } = await supabase
           .from('bowling_game_sessions')
           .select('*')
@@ -368,11 +361,9 @@ export const AuthProvider = ({ children }) => {
           .single();
         
         if (sessionError) {
-          console.error('Error fetching game session or unauthorized access:', sessionError);
-          return null;
+          throw sessionError;
         }
         
-        // Fetch games in the session
         const { data: games, error: gamesError } = await supabase
           .from('bowling_games')
           .select('*')
@@ -380,11 +371,9 @@ export const AuthProvider = ({ children }) => {
           .order('game_number', { ascending: true });
         
         if (gamesError) {
-          console.error('Error fetching games:', gamesError);
-          return null;
+          throw gamesError;
         }
         
-        // Fetch frames for each game
         const gamesWithFrames = [];
         for (const game of games) {
           const { data: frames, error: framesError } = await supabase
@@ -394,8 +383,7 @@ export const AuthProvider = ({ children }) => {
             .order('frame_number', { ascending: true });
           
           if (framesError) {
-            console.error(`Error fetching frames for game ${game.id}:`, framesError);
-            continue;
+            throw framesError;
           }
           
           gamesWithFrames.push({
@@ -409,7 +397,6 @@ export const AuthProvider = ({ children }) => {
           games: gamesWithFrames
         };
       } catch (error) {
-        console.error('Error getting saved game details:', error);
         return null;
       }
     }
