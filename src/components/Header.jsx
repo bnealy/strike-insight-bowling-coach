@@ -29,9 +29,11 @@ const Header = ({
 
   return (
     <>
-      <div className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md p-4 flex justify-between items-center mb-6 rounded-lg">
-        <h1 className="text-2xl font-bold text-white m-0">🎳 BowlTracker</h1>
-        
+<div className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md p-4 flex justify-between items-center mb-6 rounded-lg">
+  <div className="flex items-baseline gap-2">
+    <h1 className="text-2xl font-bold text-white m-0">🎳 FrameWork</h1>
+    <sub className="text-xs text-white text-opacity-70 font-light ml-1">Gutters and strikes</sub>
+  </div>  
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <UserMenu 

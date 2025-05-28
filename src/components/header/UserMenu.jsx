@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const UserMenu = ({ user, handleLogout, handleSaveGames, hasUnsavedGames }) => {
+const UserMenu = ({ user, handleLogout }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
   
@@ -46,110 +46,68 @@ const UserMenu = ({ user, handleLogout, handleSaveGames, hasUnsavedGames }) => {
       padding: '12px 16px',
       cursor: 'pointer',
       transition: 'background-color 0.3s ease'
-    },
-    saveButton: {
-      background: '#28a745',
-      color: 'white',
-      border: 'none',
-      padding: '10px 20px',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      position: 'relative'
-    },
-    unsavedIndicator: {
-      position: 'absolute',
-      top: '-5px',
-      right: '-5px',
-      width: '12px',
-      height: '12px',
-      background: '#ff4444',
-      borderRadius: '50%',
-      animation: 'pulse 2s infinite'
     }
   };
 
   return (
-    <>
-      {hasUnsavedGames && (
-        <button
-          onClick={handleSaveGames}
-          style={styles.saveButton}
-          onMouseEnter={(e) => {
-            e.target.style.background = '#218838';
-            e.target.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = '#28a745';
-            e.target.style.transform = 'translateY(0)';
-          }}
-        >
-          Save Games
-          <div style={styles.unsavedIndicator}></div>
-        </button>
-      )}
-      
-      <div style={styles.userInfo}>
-        <div
-          style={styles.welcomeText}
-          onClick={() => setShowUserMenu(!showUserMenu)}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = 'transparent';
-          }}
-        >
-          Welcome, {displayName}! ▼
-        </div>
-        
-        {showUserMenu && (
-          <div style={styles.userMenu}>
-            <div
-              style={styles.menuItem}
-              onClick={handleViewSavedGames}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#f8f9fa';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
-              }}
-            >
-              📊 View Saved Games
-            </div>
-            <div
-              style={styles.menuItem}
-              onClick={() => {
-                setShowUserMenu(false);
-                // TODO: Open profile settings
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#f8f9fa';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
-              }}
-            >
-              ⚙️ Account Settings
-            </div>
-            <div
-              style={styles.menuItemLast}
-              onClick={handleLogout}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#f8f9fa';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
-              }}
-            >
-              🚪 Sign Out
-            </div>
-          </div>
-        )}
+    <div style={styles.userInfo}>
+      <div
+        style={styles.welcomeText}
+        onClick={() => setShowUserMenu(!showUserMenu)}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = 'transparent';
+        }}
+      >
+        Welcome, {displayName}! ▼
       </div>
-    </>
+      
+      {showUserMenu && (
+        <div style={styles.userMenu}>
+          <div
+            style={styles.menuItem}
+            onClick={handleViewSavedGames}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f8f9fa';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'white';
+            }}
+          >
+            📊 View Saved Games
+          </div>
+          <div
+            style={styles.menuItem}
+            onClick={() => {
+              setShowUserMenu(false);
+              // TODO: Open profile settings
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f8f9fa';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'white';
+            }}
+          >
+            ⚙️ Account Settings
+          </div>
+          <div
+            style={styles.menuItemLast}
+            onClick={handleLogout}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#f8f9fa';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'white';
+            }}
+          >
+            🚪 Sign Out
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

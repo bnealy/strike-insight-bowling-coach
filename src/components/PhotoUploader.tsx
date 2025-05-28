@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
+import { analyzeBowlingScorecard } from '@/integrations/openAI/vision';
 
 interface DetectedScore {
   frameNumber: number;
@@ -39,41 +40,32 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onScoresDetected }) => {
     setIsProcessing(true);
 
     try {
-      // Convert the file to base64
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
-
-      // Call the Vision API endpoint
-      const response = await fetch('/api/vision', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: base64Image,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze image');
+      console.log('Starting image analysis...');
+      
+      // Call the vision analysis function directly
+      const result = await analyzeBowlingScorecard(selectedFile);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to analyze scorecard');
       }
 
-      const data = await response.json();
+      console.log('Analysis successful:', result.data);
       
-      if (data.error) {
-        throw new Error(data.error);
+      // Extract frames from the result
+      const frames = result.data?.frames || [];
+      
+      if (frames.length === 0) {
+        throw new Error('No frames detected in the scorecard');
       }
 
-      onScoresDetected(data.frames);
-      
+      // Pass the frames to the parent component
+      onScoresDetected(frames);
+
       toast({
         title: "Success!",
-        description: "Scorecard analyzed successfully.",
+        description: `Analyzed ${frames.length} frames successfully.`,
       });
+
     } catch (error) {
       console.error('Processing error:', error);
       toast({
@@ -127,4 +119,4 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onScoresDetected }) => {
   );
 };
 
-export default PhotoUploader; 
+export default PhotoUploader;

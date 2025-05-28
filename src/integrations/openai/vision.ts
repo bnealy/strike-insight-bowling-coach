@@ -4,6 +4,8 @@ const VISION_PROMPT = `This is a bowling scorecard. Please analyze it and return
 
 export async function analyzeBowlingScorecard(imageFile: File): Promise<VisionAnalysisResponse> {
   try {
+    console.log('Converting image to base64...');
+    
     // Convert the image file to base64
     const base64Image = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -17,8 +19,10 @@ export async function analyzeBowlingScorecard(imageFile: File): Promise<VisionAn
       reader.readAsDataURL(imageFile);
     });
 
+    console.log('Making API call to OpenAI...');
+
     const requestBody = {
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini", // Updated to working model
       messages: [
         {
           role: "user",
@@ -47,20 +51,36 @@ export async function analyzeBowlingScorecard(imageFile: File): Promise<VisionAn
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
+      console.error('API Error Response:', errorData);
       throw new Error(`API Error: ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
-    
+    console.log('API Response received:', data);
+
     // Parse the response content as JSON
-    const result = JSON.parse(data.choices[0].message.content) as BowlingScorecard;
+    let content = data.choices[0].message.content.trim();
+    console.log('Raw content:', content);
     
+    // Clean up common AI response formatting issues
+    if (content.startsWith('```json')) {
+      content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (content.startsWith('```')) {
+      content = content.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Remove any leading/trailing whitespace again
+    content = content.trim();
+    console.log('Cleaned content:', content);
+    
+    const result = JSON.parse(content) as BowlingScorecard;
+    console.log('Parsed result:', result);
+
     return {
       success: true,
       data: result
     };
-
   } catch (error) {
     console.error('Error analyzing scorecard:', error);
     return {
@@ -68,4 +88,4 @@ export async function analyzeBowlingScorecard(imageFile: File): Promise<VisionAn
       error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
-} 
+}

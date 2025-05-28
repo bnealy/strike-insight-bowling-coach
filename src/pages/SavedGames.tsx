@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
@@ -6,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Edit, ArrowLeft } from 'lucide-react';
+import { ChevronDown, ChevronRight, Edit, ArrowLeft, TrendingUp, Target, Trophy, Zap, Award, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
@@ -34,19 +33,124 @@ interface SavedFrame {
   score: number | null;
 }
 
+interface UserBowlingStats {
+  games_played: number;
+  average_score: number;
+  highest_score: number | null;
+  lowest_score: number | null;
+  total_strikes: number;
+  total_spares: number;
+  last_calculated_at: string;
+}
+
+interface AdditionalStats {
+  recentGames: Array<{total_score: number; created_at: string}>;
+  thisMonthGames: Array<{total_score: number; created_at: string}>;
+  allCompletedGames: Array<{total_score: number; created_at: string}>;
+}
+
 const SavedGames = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<SavedSession[]>([]);
+  const [userStats, setUserStats] = useState<UserBowlingStats | null>(null);
+  const [additionalStats, setAdditionalStats] = useState<AdditionalStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
       fetchSavedSessions();
+      fetchUserStats();
+      fetchAdditionalStats();
     }
   }, [user]);
+
+  const fetchUserStats = async () => {
+    try {
+      // First try to get existing stats
+      let { data: existingStats, error: fetchError } = await supabase
+        .from('user_bowling_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      // If no stats exist, refresh them
+      if (!existingStats) {
+        const { error: refreshError } = await supabase.rpc('refresh_user_bowling_stats', {
+          target_user_id: user.id
+        });
+
+        if (refreshError) {
+          console.error('Error refreshing stats:', refreshError);
+          // Continue without stats rather than failing completely
+          return;
+        }
+
+        // Fetch the newly created stats
+        const { data: refreshedStats, error: refetchError } = await supabase
+          .from('user_bowling_stats')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (refetchError) throw refetchError;
+        existingStats = refreshedStats;
+      }
+
+      setUserStats(existingStats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      // Don't show error toast for stats - it's not critical to the page function
+    }
+  };
+
+  const fetchAdditionalStats = async () => {
+    try {
+      // Use a simpler query approach - fetch games directly
+      const { data: gameData, error: gameError } = await supabase
+        .from('bowling_games')
+        .select(`
+          total_score,
+          is_complete,
+          created_at,
+          bowling_game_sessions!inner (
+            user_id
+          )
+        `)
+        .eq('bowling_game_sessions.user_id', user.id)
+        .eq('is_complete', true)
+        .order('created_at', { ascending: false });
+
+      if (gameError) {
+        console.error('Error fetching additional stats:', gameError);
+        return;
+      }
+
+      console.log('Successfully fetched game data:', gameData);
+
+      const allGames = gameData || [];
+
+      setAdditionalStats({
+        recentGames: allGames.slice(0, 5),
+        thisMonthGames: allGames.filter(game => {
+          const gameDate = new Date(game.created_at);
+          const now = new Date();
+          return gameDate.getMonth() === now.getMonth() && 
+                 gameDate.getFullYear() === now.getFullYear();
+        }),
+        allCompletedGames: allGames
+      });
+
+    } catch (error) {
+      console.error('Error fetching additional stats:', error);
+    }
+  };
 
   const fetchSavedSessions = async () => {
     try {
@@ -107,6 +211,40 @@ const SavedGames = () => {
     }
   };
 
+  // Calculate basic stats (working)
+  const calculateStrikePercentage = () => {
+    if (!userStats || userStats.games_played === 0) return 0;
+    const totalFrames = userStats.games_played * 10;
+    return Math.round((userStats.total_strikes / totalFrames) * 100);
+  };
+
+  const calculateSparePercentage = () => {
+    if (!userStats || userStats.games_played === 0) return 0;
+    const totalFrames = userStats.games_played * 10;
+    const possibleSpareFrames = totalFrames - userStats.total_strikes;
+    if (possibleSpareFrames === 0) return 0;
+    return Math.round((userStats.total_spares / possibleSpareFrames) * 100);
+  };
+
+  // COMMENTED OUT - Advanced stats causing loading issues
+   const calculateRecentAverage = () => {
+     if (!additionalStats?.recentGames || additionalStats.recentGames.length === 0) return 0;
+     const total = additionalStats.recentGames.reduce((sum, game) => sum + game.total_score, 0);
+     return Math.round(total / additionalStats.recentGames.length);
+   };
+
+   const calculateThisMonthAverage = () => {
+     if (!additionalStats?.thisMonthGames || additionalStats.thisMonthGames.length === 0) return 0;
+     const total = additionalStats.thisMonthGames.reduce((sum, game) => sum + game.total_score, 0);
+     return Math.round(total / additionalStats.thisMonthGames.length);
+   };
+
+   const getTrendIndicator = (recent: number, overall: number) => {
+     if (recent > overall) return { text: '↗️', color: 'text-green-300' };
+     if (recent < overall) return { text: '↘️', color: 'text-red-300' };
+     return { text: '→', color: 'text-yellow-300' };
+ };
+
   const toggleSessionExpansion = (sessionId: string) => {
     const newExpanded = new Set(expandedSessions);
     if (newExpanded.has(sessionId)) {
@@ -150,13 +288,95 @@ const SavedGames = () => {
           <Button
             onClick={() => navigate('/')}
             variant="outline"
-            className="text-white border-white hover:bg-white hover:text-blue-600"
+            className="text-blue border-white hover:bg-white hover:text-blue-600"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Game
           </Button>
           <h1 className="text-2xl font-bold text-white">Your Saved Games</h1>
         </div>
+
+        {/* User Stats Section - Back to working 5 cards */}
+        {userStats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {/* Row 1 - Basic Stats */}
+            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Trophy className="w-5 h-5 text-yellow-300 mr-2" />
+                  <span className="text-white text-sm font-medium">Games Played</span>
+                </div>
+                <p className="text-white text-2xl font-bold">{userStats.games_played}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <TrendingUp className="w-5 h-5 text-green-300 mr-2" />
+                  <span className="text-white text-sm font-medium">Average Score</span>
+                </div>
+                <p className="text-white text-2xl font-bold">{Number(userStats.average_score).toFixed(0)}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Target className="w-5 h-5 text-red-300 mr-2" />
+                  <span className="text-white text-sm font-medium">High Score</span>
+                </div>
+                <p className="text-white text-2xl font-bold">{userStats.highest_score || 'N/A'}</p>
+              </CardContent>
+            </Card>
+
+            {/* Row 2 - Working Advanced Stats */}
+            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Zap className="w-5 h-5 text-blue-300 mr-2" />
+                  <span className="text-white text-sm font-medium">Strike %</span>
+                </div>
+                <p className="text-white text-2xl font-bold">{calculateStrikePercentage()}%</p>
+                <p className="text-white text-xs opacity-70">{userStats.total_strikes} strikes</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Award className="w-5 h-5 text-purple-300 mr-2" />
+                  <span className="text-white text-sm font-medium">Spare %</span>
+                </div>
+                <p className="text-white text-2xl font-bold">{calculateSparePercentage()}%</p>
+                <p className="text-white text-xs opacity-70">{userStats.total_spares} spares</p>
+              </CardContent>
+            </Card>
+
+            {/* COMMENTED OUT - Recent Trend card causing loading issues */}
+            { <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
+              <CardContent className="p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <Calendar className="w-5 h-5 text-orange-300 mr-2" />
+                  <span className="text-white text-sm font-medium">Recent Trend</span>
+                </div>
+                {additionalStats && additionalStats.recentGames.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-center">
+                      <p className="text-white text-2xl font-bold mr-2">{calculateRecentAverage()}</p>
+                      <span className={`text-lg ${getTrendIndicator(calculateRecentAverage(), Number(userStats.average_score)).color}`}>
+                        {getTrendIndicator(calculateRecentAverage(), Number(userStats.average_score)).text}
+                      </span>
+                    </div>
+                    <p className="text-white text-xs opacity-70">Last {additionalStats.recentGames.length} games</p>
+                  </>
+                ) : (
+                  <p className="text-white text-2xl font-bold">N/A</p>
+                )}
+              </CardContent>
+            </Card> }
+          </div>
+        )}
       </div>
 
       {sessions.length === 0 ? (
@@ -201,7 +421,7 @@ const SavedGames = () => {
                         }}
                         variant="outline"
                         size="sm"
-                        className="text-white border-white hover:bg-white hover:text-blue-600"
+                        className="text-blue border-white hover:bg-white hover:text-blue-600"
                       >
                         <Edit className="w-4 h-4 mr-1" />
                         Edit Session

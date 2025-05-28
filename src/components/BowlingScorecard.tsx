@@ -10,34 +10,46 @@ import GameEntryScreen from './flow/GameEntryScreen';
 const BowlingScorecard = () => {
   const { isAuthenticated } = useAuth();
   const gameManagement = useGameManagement();
+  
+  const updateGameFrames = (gameId: number, frames: any[], totalScore: number) => {
+    console.log('🔄 Updating game frames via parent:', { gameId, totalScore });
+    
+    // Use the actual updateActiveGame function from gameManagement
+    gameManagement.updateActiveGame({
+      frames: frames,
+      totalScore: totalScore,
+      gameComplete: frames.every(frame => frame.score !== null)
+    });
+  };
 
   return (
     <div className="max-w-[1200px] mx-auto p-5 min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 font-sans">
-      <Header 
-        onSaveGames={gameManagement.handleSaveGames} 
-        hasUnsavedGames={gameManagement.hasUnsavedGames} 
+      <Header
+        onSaveGames={gameManagement.handleSaveGames}
+        hasUnsavedGames={gameManagement.hasUnsavedGames}
         onAddGame={gameManagement.addGameToSession}
         isAuthenticated={isAuthenticated}
         setIsAuthModalOpen={gameManagement.setIsAuthModalOpen}
       />
       
-      <SaveGameAlert 
-        showSuccess={false} 
-        errorMessage={gameManagement.saveError} 
+      <SaveGameAlert
+        showSuccess={false}
+        errorMessage={gameManagement.saveError}
       />
       
-      <SignInRequiredDialog 
-        isOpen={gameManagement.showSignInDialog} 
-        onClose={() => gameManagement.setShowSignInDialog(false)} 
+      <SignInRequiredDialog
+        isOpen={gameManagement.showSignInDialog}
+        onClose={() => gameManagement.setShowSignInDialog(false)}
         onSignIn={() => gameManagement.setIsAuthModalOpen(true)}
       />
       
-      <GameEntryScreen 
+      <GameEntryScreen
         gameCount={1}
         activeSession={gameManagement.activeSession}
         activeSessionId={gameManagement.activeSessionId}
         activeGameId={gameManagement.activeGameId}
         games={gameManagement.activeSession?.games || []}
+        activeGame={gameManagement.activeGame}
         setActiveGameId={gameManagement.setActiveGameId}
         clearGame={gameManagement.clearGame}
         handleBallClick={gameManagement.handleBallClick}
@@ -48,11 +60,15 @@ const BowlingScorecard = () => {
         hasUnsavedGames={gameManagement.hasUnsavedGames}
         onSaveGames={gameManagement.handleSaveGames}
         onBack={() => {}}
+        updateGameFrames={updateGameFrames}
+        // Add the missing props for saving functionality
+        sessions={gameManagement.sessions || []}
+        markSessionAsSaved={gameManagement.markSessionAsSaved}
       />
       
-      <AuthModal 
-        isOpen={gameManagement.isAuthModalOpen} 
-        onClose={() => gameManagement.setIsAuthModalOpen(false)} 
+      <AuthModal
+        isOpen={gameManagement.isAuthModalOpen}
+        onClose={() => gameManagement.setIsAuthModalOpen(false)}
       />
     </div>
   );
