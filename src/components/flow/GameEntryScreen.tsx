@@ -9,10 +9,11 @@ import GameEditorPanel from '../GameEditorPanel';
 import PhotoUploader from '../PhotoUploader';
 import Header from '@/components/Header';
 import { Game } from '@/types/bowlingTypes';
-import { analyzeBowlingScorecard } from '@/integrations/openAI/vision';
+import { analyzeBowlingScorecard } from '@/integrations/openai/vision';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSaveGames } from '@/hooks/useSaveGames';
+import PinButtons from '../PinButtons';
 
 interface GameEntryScreenProps {
   gameCount: number;
@@ -58,12 +59,44 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [hasScoreInput, setHasScoreInput] = React.useState(false);
+  const [gameBoxDimensions, setGameBoxDimensions] = React.useState({ width: 0, height: 0 });
   const { toast } = useToast();
   const { user } = useAuth();
   const { isSaving, saveSessionsToDatabase } = useSaveGames();
   const navigate = useNavigate();
   const [finalScores, setFinalScores] = React.useState<{[gameId: number]: string}>({});
-  const [editingFinalScore, setEditingFinalScore] = React.useState<number | null>(null); 
+  const [editingFinalScore, setEditingFinalScore] = React.useState<number | null>(null);
+  
+  // Ref to measure game box dimensions
+  const gameBoxRef = React.useRef<HTMLDivElement>(null);
+
+  // Measure game box dimensions
+  React.useEffect(() => {
+    const measureGameBox = () => {
+      if (gameBoxRef.current) {
+        const rect = gameBoxRef.current.getBoundingClientRect();
+        const dimensions = { 
+          width: rect.width - 48, // Subtract padding (24px * 2)
+          height: rect.height - 48 
+        };
+        console.log('📏 GameEntryScreen measuring game box:');
+        console.log('- Raw rect:', rect);
+        console.log('- Calculated dimensions:', dimensions);
+        console.log('- Will pass to GameEditorPanel:', {
+          availableWidth: dimensions.width,
+          availableHeight: dimensions.height * 0.6
+        });
+        setGameBoxDimensions(dimensions);
+      }
+    };
+
+    // Initial measurement
+    measureGameBox();
+
+    // Remeasure on window resize
+    window.addEventListener('resize', measureGameBox);
+    return () => window.removeEventListener('resize', measureGameBox);
+  }, [isEditMode]); // Remeasure when edit mode changes 
 
   // Check if user should see mock data button
   const shouldShowMockButton = user?.email?.toLowerCase().includes('bennealyfromeht') || false;
@@ -309,6 +342,47 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
     }
   };
 
+  const handleFinalScoreSubmit = (gameId: number) => {
+    const scoreStr = finalScores[gameId];
+    const score = parseInt(scoreStr);
+    
+    if (!scoreStr || isNaN(score) || score < 0 || score > 300) {
+      toast({
+        title: "Invalid Score",
+        description: "Please enter a valid score between 0 and 300.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const gameToUpdate = games.find(game => game.id === gameId);
+    if (!gameToUpdate) {
+      console.error('❌ Game not found:', gameId);
+      return;
+    }
+    
+    const emptyFrames = gameToUpdate.frames.map(frame => ({
+      ...frame,
+      balls: [null, null, null], // Clear existing ball data
+      score: null // We're only setting total score
+    }));
+    
+    if (updateGameFrames) {
+      console.log('🔄 Setting final score for game:', gameId, 'Score:', score);
+      updateGameFrames(gameId, emptyFrames, score);
+      
+      // Mark as having score input and clear the form
+      setHasScoreInput(true);
+      setFinalScores(prev => ({ ...prev, [gameId]: '' }));
+      setEditingFinalScore(null);
+      
+      toast({
+        title: "Score Updated",
+        description: `Game ${games.findIndex(g => g.id === gameId) + 1} score set to ${score}.`,
+      });
+    }
+  };
+
   const processScoresSimply = async (sortedScores: Array<{
     frameNumber: number,
     ball1: number | null,
@@ -352,46 +426,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
       
       console.log('🧮 About to call calculateBowlingScores...');
       
-
-      const handleFinalScoreSubmit = (gameId: number) => {
-        const scoreStr = finalScores[gameId];
-        const score = parseInt(scoreStr);
-        
-        if (!scoreStr || isNaN(score) || score < 0 || score > 300) {
-          toast({
-            title: "Invalid Score",
-            description: "Please enter a valid score between 0 and 300.",
-            variant: "destructive",
-          });
-          return;
-        }
-        const gameToUpdate = games.find(game => game.id === gameId);
-        if (!gameToUpdate) {
-          console.error('❌ Game not found:', gameId);
-          return;
-        }
-        const emptyFrames = gameToUpdate.frames.map(frame => ({
-          ...frame,
-          balls: [null, null, null], // Clear existing ball data
-          score: null // We're only setting total score
-        }));
-        const updatedGame = { // Update the game with the final score
-          if (updateGameFrames) {
-            console.log('🔄 Setting final score for game:', gameId, 'Score:', score);
-            updateGameFrames(gameId, emptyFrames, score);
-            
-            // Mark as having score input and clear the form
-            setHasScoreInput(true);
-            setFinalScores(prev => ({ ...prev, [gameId]: '' }));
-            setEditingFinalScore(null);
-            
-            toast({
-              title: "Score Updated",
-              description: `Game ${games.findIndex(g => g.id === gameId) + 1} score set to ${score}.`,
-            });
-          }
-        };
-      }
       const calculationResult = calculateBowlingScores(updatedFrames);
       
       console.log('✅ calculateBowlingScores returned:', calculationResult);
@@ -438,10 +472,9 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         <div className="overlay" />
         
         <div className="content-wrapper">
-
-          {/* Game Box - Contains the actual bowling game */}
-          <div className="game-box">
-            {games && games.length > 0 && (
+          {/* Bowling Game Display - No container wrapper */}
+          {games && games.length > 0 && (
+            <div className="bowling-game-section">
               <BowlingGame
                 game={games[0]}
                 isActive={true}
@@ -451,29 +484,39 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
                 handleBallClick={handleBallClick}
                 toggleVisibility={() => toggleGameVisibility(activeSessionId, games[0].id)}
                 savedStatus={activeSession?.savedToDatabase}
+                currentFrame={games[0].currentFrame}
+                currentBall={games[0].currentBall}
+                editingFrame={games[0].editingFrame}
+                editingBall={games[0].editingBall}
               />
-            )}
+            </div>
+          )}
 
-            {/* Game Editor Panel - Only show when in edit mode */}
-            {isEditMode && games && games.length > 0 && (
-              <div className="editor-panel">
-                <GameEditorPanel
-                  gameIndex={0}
-                  currentFrame={games[0].currentFrame || 0}
-                  currentBall={games[0].currentBall || 0}
-                  frames={games[0].frames || []}
-                  editingFrame={games[0].editingFrame}
-                  editingBall={games[0].editingBall}
-                  gameComplete={games[0].gameComplete || false}
-                  enterPins={enterPins}
-                  cancelEdit={() => {
-                    cancelEdit();
-                    setIsEditMode(false);
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          {/* Pin Selector - Only show when in edit mode */}
+          {isEditMode && games && games.length > 0 && (
+            <div className="pin-selector-section">
+              <PinButtons
+                onPinClick={enterPins}
+                currentFrame={games[0].currentFrame || 0}
+                currentBall={games[0].currentBall || 0}
+                frames={games[0].frames || []}
+                editingFrame={games[0].editingFrame}
+                editingBall={games[0].editingBall}
+                gameComplete={games[0].gameComplete || false}
+              />
+              
+              {/* Cancel Edit Button */}
+              {/*<button
+                onClick={() => {
+                  cancelEdit();
+                  setIsEditMode(false);
+                }}
+                className="cancel-edit-button"
+              >
+                ✕ Cancel Edit
+              </button>*/}
+            </div>
+          )}
 
           {/* Main Action Buttons - 4-button layout */}
           <div className="actions-grid">
@@ -483,7 +526,7 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
                 onClick={handleManualScoreInput}
                 className={`action-button ${isEditMode ? 'active-edit' : 'primary-action'}`}
               >
-                {isEditMode ? '✓ Done' : 'Manually Input Score'}
+                {isEditMode ? '✓ Done Editing' : 'Manually Input Score'}
               </button>
             </div>
 
@@ -503,99 +546,97 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
                 Upload Score Photo
               </label>
 
-            {/* Final Score Button */}
-  {/* Final Score Button /}
-<button
-  onClick={() => setEditingFinalScore(editingFinalScore === games[0].id ? null : games[0].id)}
-  className="action-button primary-action"
-  style={{
-    marginTop: '12px',
-    background: editingFinalScore === games[0].id
-      ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
-      : undefined
-  }}
->
-  {editingFinalScore === games[0].id ? '✓ Done' : '# Score'}
-</button>
+              {/* Final Score Button */}
+              <button
+                onClick={() => setEditingFinalScore(editingFinalScore === games[0].id ? null : games[0].id)}
+                className="action-button primary-action"
+                style={{
+                  marginTop: '12px',
+                  background: editingFinalScore === games[0].id
+                    ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
+                    : undefined
+                }}
+              >
+                {editingFinalScore === games[0].id ? '✓ Done' : '# Score'}
+              </button>
 
-{/* Final Score Input Panel /}
-{editingFinalScore === games[0].id && (
-  <div style={{
-    marginTop: '16px',
-    padding: '16px',
-    background: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: '8px',
-    border: '1px solid rgba(255, 255, 255, 0.2)'
-  }}>
-    <h4 style={{
-      color: 'white',
-      fontSize: '1rem',
-      marginBottom: '12px',
-      fontWeight: 600
-    }}>
-      Enter Final Score for Game 1
-    </h4>
+              {/* Final Score Input Panel */}
+              {editingFinalScore === games[0].id && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  <h4 style={{
+                    color: 'white',
+                    fontSize: '1rem',
+                    marginBottom: '12px',
+                    fontWeight: 600
+                  }}>
+                    Enter Final Score for Game 1
+                  </h4>
 
-    <div style={{
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'center'
-    }}>
-      <input
-        type="number"
-        min="0"
-        max="300"
-        placeholder="Enter score (0-300)"
-        value={finalScores[games[0].id] || ''}
-        onChange={(e) => setFinalScores(prev => ({ ...prev, [games[0].id]: e.target.value }))}
-        style={{
-          flex: 1,
-          padding: '8px 12px',
-          borderRadius: '6px',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          background: 'rgba(255, 255, 255, 0.1)',
-          color: 'white',
-          fontSize: '0.875rem',
-          fontFamily: "'Comfortaa'"
-        }}
-        onKeyPress={(e) => {
-          if (e.key === 'Enter') {
-            handleFinalScoreSubmit(games[0].id);
-          }
-        }}
-      />
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'center'
+                  }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="300"
+                      placeholder="Enter score (0-300)"
+                      value={finalScores[games[0].id] || ''}
+                      onChange={(e) => setFinalScores(prev => ({ ...prev, [games[0].id]: e.target.value }))}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        fontFamily: "'Comfortaa'"
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleFinalScoreSubmit(games[0].id);
+                        }
+                      }}
+                    />
 
-      <button
-        onClick={() => handleFinalScoreSubmit(games[0].id)}
-        className="action-button primary-action"
-        style={{ whiteSpace: 'nowrap' }}
-      >
-        Set Score
-      </button>
+                    <button
+                      onClick={() => handleFinalScoreSubmit(games[0].id)}
+                      className="action-button primary-action"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      Set Score
+                    </button>
 
-      <button
-        onClick={() => {
-          setEditingFinalScore(null);
-          setFinalScores(prev => ({ ...prev, [games[0].id]: '' }));
-        }}
-        className="action-button"
-        style={{ background: 'rgba(108, 117, 125, 0.8)' }}
-      >
-        Cancel
-      </button>
-    </div>
+                    <button
+                      onClick={() => {
+                        setEditingFinalScore(null);
+                        setFinalScores(prev => ({ ...prev, [games[0].id]: '' }));
+                      }}
+                      className="action-button"
+                      style={{ background: 'rgba(108, 117, 125, 0.8)' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
 
-    <p style={{
-      color: 'rgba(255, 255, 255, 0.7)',
-      fontSize: '0.75rem',
-      marginTop: '8px',
-      marginBottom: 0
-    }}>
-      This will set the total score without frame-by-frame details.
-    </p>
-  </div>
-)}
-
+                  <p style={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: '0.75rem',
+                    marginTop: '8px',
+                    marginBottom: 0
+                  }}>
+                    This will set the total score without frame-by-frame details.
+                  </p>
+                </div>
+              )}
 
               {/* Mock Data Button - Only for specific user */}
               {shouldShowMockButton && (
@@ -716,27 +757,53 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
           min-height: 100vh;
           display: flex;
           flex-direction: column;
+          gap: 20px;
         }
 
-        .game-box {
+        .bowling-game-section {
           background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
           backdrop-filter: blur(20px);
           border-radius: 12px;
           padding: 24px;
-          margin-top: 100px; /* Account for header height */
-          margin-bottom: 24px;
           border: 1px solid rgba(255, 255, 255, 0.2);
+          margin-top: 80px; /* Account for header height */
         }
 
-        .editor-panel {
-          margin-top: 16px;
-          padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.2);
+        .pin-selector-section {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 400px;
+          position: relative;
+        }
+
+        .cancel-edit-button {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(220, 53, 69, 0.8);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 25px;
+          cursor: pointer;
+          font-family: 'Comfortaa', cursive;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
+        }
+
+        .cancel-edit-button:hover {
+          background: rgba(220, 53, 69, 1);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .actions-grid {
           display: grid;
-          grid-template-columns: repeat(3);
+          grid-template-columns: repeat(4, 1fr);
           gap: 16px;
           margin-bottom: 24px;
         }
@@ -770,7 +837,7 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         }
 
         .primary-action:hover {
-          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
+          background: linear-gradient(135deg, rgba(87, 40, 74, 0.9) 0%, rgba(190, 114, 170, 0.9) 50%, rgba(114, 170, 190, 0.9) 100%);
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
@@ -854,20 +921,27 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
         }
 
-        /* Responsive Design */
+        /* Mobile Responsive Design */
         @media (max-width: 768px) {
           .content-wrapper {
-            padding: 16px;
+            padding: 8px; /* Reduced padding significantly */
+            margin: 0; /* Remove any margin */
           }
 
           .game-box {
-            padding: 16px;
-            margin-top: 80px; /* Reduced margin for mobile */
+            padding: 12px; /* Reduced padding */
+            margin-top: 60px; /* Reduced margin for mobile */
+            margin-bottom: 16px;
+            border-radius: 8px; /* Smaller border radius */
+            margin-left: -8px; /* Extend to screen edges */
+            margin-right: -8px;
+            max-width: calc(100vw); /* Full viewport width */
           }
 
           .actions-grid {
-            grid-template-columns: repeat(3,1fr);
+            grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
             gap: 12px;
+            margin-bottom: 16px;
           }
 
           .action-button {
@@ -882,16 +956,69 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
             padding: 10px 16px;
             font-size: 0.9rem;
           }
+
+          /* Make final score input more mobile friendly */
+          .final-score-panel {
+            margin-left: -8px;
+            margin-right: -8px;
+          }
+
+          .final-score-inputs {
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .final-score-inputs input {
+            margin-bottom: 8px;
+          }
         }
 
         @media (max-width: 480px) {
+          .content-wrapper {
+            padding: 4px; /* Even less padding on very small screens */
+          }
+
+          .game-box {
+            padding: 8px;
+            margin-left: -4px;
+            margin-right: -4px;
+            margin-top: 50px;
+          }
+
           .actions-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr; /* Single column on very small screens */
+            gap: 8px;
           }
 
           .action-button {
             padding: 12px;
             font-size: 0.875rem;
+          }
+
+          .back-button {
+            bottom: 12px;
+            right: 12px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+          }
+        }
+
+        /* Ensure bowling game frames are responsive */
+        @media (max-width: 768px) {
+          :global(.bowling-game-container) {
+            overflow-x: auto;
+            padding-bottom: 8px;
+          }
+
+          :global(.bowling-frames-container) {
+            min-width: max-content;
+            display: flex;
+            gap: 2px;
+          }
+
+          :global(.bowling-frame) {
+            min-width: 60px; /* Ensure minimum frame width */
+            flex-shrink: 0;
           }
         }
       `}</style>
