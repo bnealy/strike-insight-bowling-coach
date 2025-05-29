@@ -221,7 +221,7 @@ const PinButtons: React.FC<PinButtonsProps> = ({
         clipPath: `polygon(50% 50%, ${arcPoints.join(', ')})`,
         background: value === 0 ? 
           'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)' : // Gray for gutter
-          'linear-gradient(135deg, #007bff 0%, #0056b3 100%)', // Blue for regular pins
+          'linear-gradient(135deg, #D3D3D3 0%, #D3D3D3 100%)', // Blue for regular pins
         color: 'white',
         top: '50%',
         left: '50%',
@@ -259,7 +259,7 @@ const PinButtons: React.FC<PinButtonsProps> = ({
           onClick={() => handlePinClick(centerValue)}
           className="center-button"
         >
-          {centerValue === 10 ? 'X' : centerValue}
+          {centerValue === 10 ? 'X' : '/'}
         </button>
 
         {/* Outer pizza slice buttons */}
@@ -290,10 +290,10 @@ const PinButtons: React.FC<PinButtonsProps> = ({
                   left: '50%',
                   top: '50%',
                   transform: `translate(-50%, -50%) translate(${textX}px, ${textY}px)`,
-                  color: 'white',
-                  fontSize: `${centerButtonSize * 0.4}px`,
+                  color: 'black',
+                  fontSize: `${centerButtonSize * 0.6}px`,
                   fontWeight: 'bold',
-                  fontFamily: "'Comfortaa', cursive",
+                  fontFamily: "'Comfortaa'",
                   textShadow: '0 2px 6px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.5)',
                   zIndex: 15,
                   pointerEvents: 'none',

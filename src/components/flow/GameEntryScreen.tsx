@@ -547,7 +547,7 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
               </label>
 
               {/* Final Score Button */}
-              <button
+              {/*<button
                 onClick={() => setEditingFinalScore(editingFinalScore === games[0].id ? null : games[0].id)}
                 className="action-button primary-action"
                 style={{
