@@ -2,16 +2,17 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { BowlingFlowStep } from '@/types/flowTypes';
 import BowlingGame from '../BowlingGame';
 import GameEditorPanel from '../GameEditorPanel';
 import PhotoUploader from '../PhotoUploader';
+import Header from '@/components/Header';
 import { Game } from '@/types/bowlingTypes';
 import { analyzeBowlingScorecard } from '@/integrations/openAI/vision';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useSaveGames } from '@/hooks/useSaveGames'; // Add this import
-
+import { useSaveGames } from '@/hooks/useSaveGames';
 
 interface GameEntryScreenProps {
   gameCount: number;
@@ -29,8 +30,8 @@ interface GameEntryScreenProps {
   activeGame?: Game;
   activeGameIndex?: number;
   updateGameFrames?: (gameId: number, frames: any[], totalScore: number) => void;
-  sessions?: any[]; // Add this - we need access to the sessions to save them
-  markSessionAsSaved?: (sessionId: number) => void; // Add this callback
+  sessions?: any[];
+  markSessionAsSaved?: (sessionId: number) => void;
 }
 
 const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
@@ -49,8 +50,8 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   activeGame,
   activeGameIndex = 0,
   updateGameFrames,
-  sessions = [], // Add default empty array
-  markSessionAsSaved, // Destructure the new prop
+  sessions = [],
+  markSessionAsSaved,
 }) => {
   const [showRecalculateButton, setShowRecalculateButton] = React.useState(false);
   const [isEditMode, setIsEditMode] = React.useState(false);
@@ -59,29 +60,33 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   const [hasScoreInput, setHasScoreInput] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isSaving, saveSessionsToDatabase } = useSaveGames(); // Use the save hook
-  
+  const { isSaving, saveSessionsToDatabase } = useSaveGames();
+  const navigate = useNavigate();
+  const [finalScores, setFinalScores] = React.useState<{[gameId: number]: string}>({});
+  const [editingFinalScore, setEditingFinalScore] = React.useState<number | null>(null); 
 
+  // Check if user should see mock data button
+  const shouldShowMockButton = user?.email?.toLowerCase().includes('bennealyfromeht') || false;
+
+  const handleBackNavigation = () => {
+    // Go back to previous page in browser history
+    navigate(-1);
+  };
+  
   const recalculateScores = async () => {
     console.log('🔄 Manual score recalculation triggered...');
     
-    // Click on Frame 1 to trigger recalculation
     handleBallClick(0, 0);
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Re-enter the first frame's first ball value
     const firstFrameFirstBall = activeGame?.frames?.[0]?.balls?.[0];
     if (firstFrameFirstBall !== null && firstFrameFirstBall !== undefined) {
       enterPins(firstFrameFirstBall);
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Cancel edit mode
     cancelEdit();
-    
-    // Hide the button since scores should now be calculated
     setShowRecalculateButton(false);
-    
     console.log('✅ Score recalculation complete!');
   };
 
@@ -94,13 +99,11 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
     console.log('=== SCORES DETECTED ===');
     console.log('Received scores:', scores);
     
-    // Validate the data format
     if (!Array.isArray(scores) || scores.length === 0) {
       console.error('Invalid scores data received');
       return;
     }
 
-    // Find a game to use
     let gameToUse = null;
     
     if (activeGame) {
@@ -122,13 +125,8 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
     
     console.log('✅ Processing scores interactively for game ID:', gameToUse.id);
     
-    // Sort by frame number to ensure correct order
     const sortedScores = scores.sort((a, b) => a.frameNumber - b.frameNumber);
-    
-    // Process scores with the simplified approach
     processScoresSimply(sortedScores);
-    
-    // Mark that we have score input
     setHasScoreInput(true);
   };
 
@@ -152,20 +150,17 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
     setIsProcessing(true);
     try {
       console.log('Starting image analysis...');
-      // Call the vision analysis function directly
       const result = await analyzeBowlingScorecard(selectedFile);
       if (!result.success) {
         throw new Error(result.error || 'Failed to analyze scorecard');
       }
 
       console.log('Analysis successful:', result.data);
-      // Extract frames from the result
       const frames = result.data?.frames || [];
       if (frames.length === 0) {
         throw new Error('No frames detected in the scorecard');
       }
 
-      // Pass the frames to the parent component
       handleScoresDetected(frames);
       toast({
         title: "Success!",
@@ -186,18 +181,14 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   const handleManualScoreInput = () => {
     setIsEditMode(!isEditMode);
     if (!isEditMode) {
-      setHasScoreInput(true); // Mark that manual input is being used
+      setHasScoreInput(true);
     }
   };
 
   const handleSaveGame = async () => {
     try {
       console.log('Saving game...');
-      console.log('Sessions data:', sessions);
-      console.log('Sessions length:', sessions.length);
-      console.log('markSessionAsSaved function:', markSessionAsSaved);
       
-      // Check if we have sessions to save
       if (!sessions || sessions.length === 0) {
         console.error('❌ No sessions available to save');
         toast({
@@ -208,14 +199,8 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         return;
       }
       
-      console.log('About to call saveSessionsToDatabase...');
-      
-      // Use the actual save function from useSaveGames hook
       await saveSessionsToDatabase(sessions, markSessionAsSaved || (() => {}));
       
-      console.log('✅ saveSessionsToDatabase completed successfully');
-      
-      // After successfully saving the game, refresh the user's stats
       if (user) {
         console.log('Refreshing user bowling stats...');
         const { error: statsError } = await supabase.rpc('refresh_user_bowling_stats', {
@@ -224,7 +209,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         
         if (statsError) {
           console.error('Error refreshing stats:', statsError);
-          // Don't fail the save if stats refresh fails
         } else {
           console.log('✅ User stats refreshed successfully');
         }
@@ -237,7 +221,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
       
     } catch (error) {
       console.error('❌ Error saving game:', error);
-      console.error('❌ Error details:', error.message, error.stack);
       toast({
         title: "Save Failed",
         description: error instanceof Error ? error.message : "Failed to save your game. Please try again.",
@@ -261,12 +244,12 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         
         console.log(`Frame ${i + 1} balls:`, balls);
         
-        if (i < 9) { // Frames 1-9
-          if (balls[0] === 10) { // Strike
+        if (i < 9) {
+          if (balls[0] === 10) {
             console.log(`Frame ${i + 1}: Strike detected`);
             frame.score = 10;
             
-            if (i < 8) { // Can look ahead 2 frames
+            if (i < 8) {
               const nextFrame = scoredFrames[i + 1];
               const nextNextFrame = scoredFrames[i + 2];
               
@@ -279,24 +262,24 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
               } else {
                 frame.score += (nextFrame.balls[1] || 0);
               }
-            } else { // Frame 9, look at frame 10
+            } else {
               console.log(`Frame 9 strike, looking at frame 10:`, scoredFrames[9].balls);
               frame.score += (scoredFrames[9].balls[0] || 0) + (scoredFrames[9].balls[1] || 0);
             }
             
             console.log(`Frame ${i + 1} strike score:`, frame.score);
             
-          } else if ((balls[0] || 0) + (balls[1] || 0) === 10) { // Spare
+          } else if ((balls[0] || 0) + (balls[1] || 0) === 10) {
             console.log(`Frame ${i + 1}: Spare detected`);
             frame.score = 10 + (scoredFrames[i + 1].balls[0] || 0);
             console.log(`Frame ${i + 1} spare score:`, frame.score);
             
-          } else { // Regular frame
+          } else {
             console.log(`Frame ${i + 1}: Regular frame`);
             frame.score = (balls[0] || 0) + (balls[1] || 0);
             console.log(`Frame ${i + 1} regular score:`, frame.score);
           }
-        } else { // Frame 10
+        } else {
           console.log(`Frame 10: Special scoring`);
           frame.score = (balls[0] || 0) + (balls[1] || 0) + (balls[2] || 0);
           console.log(`Frame 10 score:`, frame.score);
@@ -304,7 +287,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         
         totalScore += frame.score;
         
-        // Update cumulative score
         if (i === 0) {
           frame.cumulativeScore = frame.score;
         } else {
@@ -341,7 +323,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
     }
     
     try {
-      // Create updated frames with the new ball data
       const updatedFrames = [...activeGame.frames];
       
       console.log('📝 Original frames:', updatedFrames);
@@ -356,7 +337,6 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         
         console.log(`📝 Setting Frame ${frame.frameNumber} balls:`, frame);
         
-        // Update the frame's balls directly
         if (frame.ball1 !== null) {
           updatedFrames[frameIndex].balls[0] = frame.ball1;
         }
@@ -370,9 +350,48 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
       
       console.log('📝 Updated frames before calculation:', updatedFrames);
       
-      // Calculate all the bowling scores manually
       console.log('🧮 About to call calculateBowlingScores...');
       
+
+      const handleFinalScoreSubmit = (gameId: number) => {
+        const scoreStr = finalScores[gameId];
+        const score = parseInt(scoreStr);
+        
+        if (!scoreStr || isNaN(score) || score < 0 || score > 300) {
+          toast({
+            title: "Invalid Score",
+            description: "Please enter a valid score between 0 and 300.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const gameToUpdate = games.find(game => game.id === gameId);
+        if (!gameToUpdate) {
+          console.error('❌ Game not found:', gameId);
+          return;
+        }
+        const emptyFrames = gameToUpdate.frames.map(frame => ({
+          ...frame,
+          balls: [null, null, null], // Clear existing ball data
+          score: null // We're only setting total score
+        }));
+        const updatedGame = { // Update the game with the final score
+          if (updateGameFrames) {
+            console.log('🔄 Setting final score for game:', gameId, 'Score:', score);
+            updateGameFrames(gameId, emptyFrames, score);
+            
+            // Mark as having score input and clear the form
+            setHasScoreInput(true);
+            setFinalScores(prev => ({ ...prev, [gameId]: '' }));
+            setEditingFinalScore(null);
+            
+            toast({
+              title: "Score Updated",
+              description: `Game ${games.findIndex(g => g.id === gameId) + 1} score set to ${score}.`,
+            });
+          }
+        };
+      }
       const calculationResult = calculateBowlingScores(updatedFrames);
       
       console.log('✅ calculateBowlingScores returned:', calculationResult);
@@ -382,13 +401,11 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
       console.log('✅ Calculated scores:', scoredFrames);
       console.log('📊 Total Score:', totalScore);
       
-      // NOW update the game using the parent's update function (AFTER calculation)
       if (updateGameFrames) {
         console.log('🔄 About to call updateGameFrames...');
         updateGameFrames(activeGame.id, scoredFrames, totalScore);
         console.log('🔄 updateGameFrames completed');
         
-        // Force a re-render after a brief delay (Option 1)
         setTimeout(() => {
           console.log('🔄 Triggering additional update...');
           setActiveGameId(activeGame.id);
@@ -404,168 +421,481 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
       console.error('❌ Error stack:', error.stack);
     }
   };
+  
 
   return (
-    <div className="flex flex-col h-full relative">
-      {/* Header */}
-      <div className="flex justify-center items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Game Entry</h2>
-      </div>
+    <>
+      <div className="game-entry-container">
+        {/* Background Image */}
+        <div 
+          className="background-image"
+          style={{
+            backgroundImage: "url('/bowling_alley_photo.jpeg')"
+          }}
+        />
+        
+        {/* Dark Overlay */}
+        <div className="overlay" />
+        
+        <div className="content-wrapper">
 
-      {/* Game Box - Contains the actual bowling game */}
-      <div className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md rounded-lg p-6 mb-6 border-2 border-white border-opacity-20">
-        {/* Force render BowlingGame using first available game */}
-        {games && games.length > 0 && (
-          <BowlingGame
-            game={games[0]} // Use first game instead of activeGame
-            isActive={true}
-            gameIndex={0}
-            setActiveGameId={setActiveGameId}
-            clearGame={() => clearGame(activeSessionId, games[0].id)}
-            handleBallClick={handleBallClick}
-            toggleVisibility={() => toggleGameVisibility(activeSessionId, games[0].id)}
-            savedStatus={activeSession?.savedToDatabase}
-          />
-        )}
-
-        {/* Game Editor Panel - Only show when in edit mode */}
-        {isEditMode && games && games.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-white border-opacity-20">
-            <GameEditorPanel
-              gameIndex={0}
-              currentFrame={games[0].currentFrame || 0}
-              currentBall={games[0].currentBall || 0}
-              frames={games[0].frames || []}
-              editingFrame={games[0].editingFrame}
-              editingBall={games[0].editingBall}
-              gameComplete={games[0].gameComplete || false}
-              enterPins={enterPins}
-              cancelEdit={() => {
-                cancelEdit();
-                setIsEditMode(false);
-              }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Main Action Buttons - 4-button layout */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        {/* Column 1: Manual Input Score */}
-        <div className="space-y-2">
-          <button
-            onClick={handleManualScoreInput}
-            className={`w-full cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 ${
-              isEditMode 
-                ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-500' 
-                : 'bg-primary text-primary-foreground shadow hover:bg-primary/90'
-            }`}
-          >
-            {isEditMode ? '✓ Done' : 'Manually Input Score'}
-          </button>
-        </div>
-
-        {/* Column 2: Upload Score Photo */}
-        <div className="space-y-2">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-            id="photo-upload"
-          />
-          <label
-            htmlFor="photo-upload"
-            className="w-full cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
-          >
-            Upload Score Photo
-          </label>
-          
-          {/* Mock Data Button - Only for you */}
-          {true && ( // Replace with your user check
-            <Button 
-              onClick={() => {
-                console.log('Test button clicked - simulating scorecard upload');
-                const mockScores = [
-                  { frameNumber: 1, ball1: 7, ball2: 3, ball3: null },
-                  { frameNumber: 2, ball1: 10, ball2: null, ball3: null },
-                  { frameNumber: 3, ball1: 8, ball2: 1, ball3: null },
-                  { frameNumber: 4, ball1: 6, ball2: 4, ball3: null },
-                  { frameNumber: 5, ball1: 10, ball2: null, ball3: null },
-                  { frameNumber: 6, ball1: 9, ball2: 0, ball3: null },
-                  { frameNumber: 7, ball1: 8, ball2: 2, ball3: null },
-                  { frameNumber: 8, ball1: 7, ball2: 2, ball3: null },
-                  { frameNumber: 9, ball1: 10, ball2: null, ball3: null },
-                  { frameNumber: 10, ball1: 9, ball2: 1, ball3: 7 }
-                ];
-                handleScoresDetected(mockScores);
-              }}
-              className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs py-1 h-7"
-            >
-              🧪 Test Mock Data
-            </Button>
-          )}
-        </div>
-
-        {/* Column 3: Analyze (only shows when file selected) */}
-        <div className="space-y-2">
-          {selectedFile && (
-            <button
-              onClick={processImage}
-              disabled={isProcessing}
-              className="w-full cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Analyze Scorecard'
-              )}
-            </button>
-          )}
-
-          {selectedFile && (
-            <p className="text-xs text-white text-opacity-70 truncate">
-              {selectedFile.name}
-            </p>
-          )}
-        </div>
-
-        {/* Column 4: Save Game */}
-        <div className="space-y-2">
-          <button
-            onClick={handleSaveGame}
-            disabled={!hasScoreInput || isSaving}
-            className={`w-full cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 py-2 ${
-              hasScoreInput && !isSaving
-                ? 'bg-primary text-primary-foreground shadow hover:bg-primary/90'
-                : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-50'
-            }`}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Game'
+          {/* Game Box - Contains the actual bowling game */}
+          <div className="game-box">
+            {games && games.length > 0 && (
+              <BowlingGame
+                game={games[0]}
+                isActive={true}
+                gameIndex={0}
+                setActiveGameId={setActiveGameId}
+                clearGame={() => clearGame(activeSessionId, games[0].id)}
+                handleBallClick={handleBallClick}
+                toggleVisibility={() => toggleGameVisibility(activeSessionId, games[0].id)}
+                savedStatus={activeSession?.savedToDatabase}
+              />
             )}
+
+            {/* Game Editor Panel - Only show when in edit mode */}
+            {isEditMode && games && games.length > 0 && (
+              <div className="editor-panel">
+                <GameEditorPanel
+                  gameIndex={0}
+                  currentFrame={games[0].currentFrame || 0}
+                  currentBall={games[0].currentBall || 0}
+                  frames={games[0].frames || []}
+                  editingFrame={games[0].editingFrame}
+                  editingBall={games[0].editingBall}
+                  gameComplete={games[0].gameComplete || false}
+                  enterPins={enterPins}
+                  cancelEdit={() => {
+                    cancelEdit();
+                    setIsEditMode(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Main Action Buttons - 4-button layout */}
+          <div className="actions-grid">
+            {/* Column 1: Manual Input Score */}
+            <div className="action-column">
+              <button
+                onClick={handleManualScoreInput}
+                className={`action-button ${isEditMode ? 'active-edit' : 'primary-action'}`}
+              >
+                {isEditMode ? '✓ Done' : 'Manually Input Score'}
+              </button>
+            </div>
+
+            {/* Column 2: Upload Score Photo */}
+            <div className="action-column">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="file-input"
+                id="photo-upload"
+              />
+              <label
+                htmlFor="photo-upload"
+                className="action-button primary-action"
+              >
+                Upload Score Photo
+              </label>
+
+            {/* Final Score Button */}
+  {/* Final Score Button /}
+<button
+  onClick={() => setEditingFinalScore(editingFinalScore === games[0].id ? null : games[0].id)}
+  className="action-button primary-action"
+  style={{
+    marginTop: '12px',
+    background: editingFinalScore === games[0].id
+      ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
+      : undefined
+  }}
+>
+  {editingFinalScore === games[0].id ? '✓ Done' : '# Score'}
+</button>
+
+{/* Final Score Input Panel /}
+{editingFinalScore === games[0].id && (
+  <div style={{
+    marginTop: '16px',
+    padding: '16px',
+    background: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: '8px',
+    border: '1px solid rgba(255, 255, 255, 0.2)'
+  }}>
+    <h4 style={{
+      color: 'white',
+      fontSize: '1rem',
+      marginBottom: '12px',
+      fontWeight: 600
+    }}>
+      Enter Final Score for Game 1
+    </h4>
+
+    <div style={{
+      display: 'flex',
+      gap: '12px',
+      alignItems: 'center'
+    }}>
+      <input
+        type="number"
+        min="0"
+        max="300"
+        placeholder="Enter score (0-300)"
+        value={finalScores[games[0].id] || ''}
+        onChange={(e) => setFinalScores(prev => ({ ...prev, [games[0].id]: e.target.value }))}
+        style={{
+          flex: 1,
+          padding: '8px 12px',
+          borderRadius: '6px',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          background: 'rgba(255, 255, 255, 0.1)',
+          color: 'white',
+          fontSize: '0.875rem',
+          fontFamily: "'Comfortaa'"
+        }}
+        onKeyPress={(e) => {
+          if (e.key === 'Enter') {
+            handleFinalScoreSubmit(games[0].id);
+          }
+        }}
+      />
+
+      <button
+        onClick={() => handleFinalScoreSubmit(games[0].id)}
+        className="action-button primary-action"
+        style={{ whiteSpace: 'nowrap' }}
+      >
+        Set Score
+      </button>
+
+      <button
+        onClick={() => {
+          setEditingFinalScore(null);
+          setFinalScores(prev => ({ ...prev, [games[0].id]: '' }));
+        }}
+        className="action-button"
+        style={{ background: 'rgba(108, 117, 125, 0.8)' }}
+      >
+        Cancel
+      </button>
+    </div>
+
+    <p style={{
+      color: 'rgba(255, 255, 255, 0.7)',
+      fontSize: '0.75rem',
+      marginTop: '8px',
+      marginBottom: 0
+    }}>
+      This will set the total score without frame-by-frame details.
+    </p>
+  </div>
+)}
+
+
+              {/* Mock Data Button - Only for specific user */}
+              {shouldShowMockButton && (
+                <button 
+                  onClick={() => {
+                    console.log('Test button clicked - simulating scorecard upload');
+                    const mockScores = [
+                      { frameNumber: 1, ball1: 7, ball2: 3, ball3: null },
+                      { frameNumber: 2, ball1: 10, ball2: null, ball3: null },
+                      { frameNumber: 3, ball1: 8, ball2: 1, ball3: null },
+                      { frameNumber: 4, ball1: 6, ball2: 4, ball3: null },
+                      { frameNumber: 5, ball1: 10, ball2: null, ball3: null },
+                      { frameNumber: 6, ball1: 9, ball2: 0, ball3: null },
+                      { frameNumber: 7, ball1: 8, ball2: 2, ball3: null },
+                      { frameNumber: 8, ball1: 7, ball2: 2, ball3: null },
+                      { frameNumber: 9, ball1: 10, ball2: null, ball3: null },
+                      { frameNumber: 10, ball1: 9, ball2: 1, ball3: 7 }
+                    ];
+                    handleScoresDetected(mockScores);
+                  }}
+                  className="mock-button"
+                >
+                  🧪 Test Mock Data
+                </button>
+              )}
+            </div>
+
+            {/* Column 3: Analyze (only shows when file selected) */}
+            <div className="action-column">
+              {selectedFile && (
+                <button
+                  onClick={processImage}
+                  disabled={isProcessing}
+                  className="action-button primary-action"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Analyze Scorecard'
+                  )}
+                </button>
+              )}
+
+              {selectedFile && (
+                <p className="file-name">
+                  {selectedFile.name}
+                </p>
+              )}
+            </div>
+
+            {/* Column 4: Save Game */}
+            <div className="action-column">
+              <button
+                onClick={handleSaveGame}
+                disabled={!hasScoreInput || isSaving}
+                className={`action-button ${hasScoreInput && !isSaving ? 'primary-action' : 'disabled-action'}`}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Game'
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Back Button - Bottom Right */}
+          <button
+            onClick={handleBackNavigation}
+            className="back-button"
+          >
+            <span>←</span>
+            Back
           </button>
         </div>
       </div>
 
-      {/* Back Button - Bottom Right */}
-      <Button
-        variant="outline"
-        onClick={() => onBack('SESSION_SETUP')}
-        className="fixed bottom-6 right-6 bg-gray-600 hover:bg-gray-700 text-white border-gray-500 px-6 py-3 text-base font-semibold flex items-center gap-2 shadow-lg"
-      >
-        <span>←</span>
-        Back
-      </Button>
-    </div>
+      <style jsx>{`
+        .game-entry-container {
+          position: relative;
+          min-height: 100vh;
+          font-family: 'Comfortaa', cursive;
+        }
+
+        .background-image {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1;
+        }
+
+        .content-wrapper {
+          position: relative;
+          z-index: 10;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .game-box {
+          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
+          backdrop-filter: blur(20px);
+          border-radius: 12px;
+          padding: 24px;
+          margin-top: 100px; /* Account for header height */
+          margin-bottom: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .editor-panel {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .actions-grid {
+          display: grid;
+          grid-template-columns: repeat(3);
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .action-column {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .action-button {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          font-family: 'Comfortaa';
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: none;
+          min-height: 48px;
+        }
+
+        .primary-action {
+          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .primary-action:hover {
+          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .active-edit {
+          background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+          color: white;
+          border: 2px solid #2e7d32;
+        }
+
+        .active-edit:hover {
+          background: linear-gradient(135deg, #45a049 0%, #388e3c 100%);
+          transform: translateY(-2px);
+        }
+
+        .disabled-action {
+          background: rgba(108, 117, 125, 0.8);
+          color: rgba(255, 255, 255, 0.6);
+          cursor: not-allowed;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .disabled-action:hover {
+          transform: none;
+        }
+
+        .file-input {
+          display: none;
+        }
+
+        .mock-button {
+          width: 100%;
+          background: rgba(255, 193, 7, 0.9);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-family: 'Comfortaa';
+        }
+
+        .mock-button:hover {
+          background: rgba(255, 193, 7, 1);
+          transform: translateY(-1px);
+        }
+
+        .file-name {
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.75rem;
+          text-align: center;
+          margin: 0;
+          word-break: break-all;
+        }
+
+        .back-button {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(108, 117, 125, 0.9);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          padding: 12px 20px;
+          border-radius: 25px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-family: 'Comfortaa';
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .back-button:hover {
+          background: rgba(108, 117, 125, 1);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .content-wrapper {
+            padding: 16px;
+          }
+
+          .game-box {
+            padding: 16px;
+            margin-top: 80px; /* Reduced margin for mobile */
+          }
+
+          .actions-grid {
+            grid-template-columns: repeat(3,1fr);
+            gap: 12px;
+          }
+
+          .action-button {
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            min-height: 44px;
+          }
+
+          .back-button {
+            bottom: 16px;
+            right: 16px;
+            padding: 10px 16px;
+            font-size: 0.9rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .actions-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .action-button {
+            padding: 12px;
+            font-size: 0.875rem;
+          }
+        }
+      `}</style>
+    </>
   );
 };
 

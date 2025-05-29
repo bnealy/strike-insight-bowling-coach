@@ -7,6 +7,18 @@ export const useGameManagement = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSignInDialog, setShowSignInDialog] = useState(false);
+
+  // Add these functions to your useGameManagement hook if they don't exist:
+
+const deleteGame = (gameId: number) => {
+  // Remove game from current session
+  // Update state accordingly
+};
+
+const updateGameScore = (gameId: number, totalScore: number) => {
+  // Update specific game's total score
+  // Mark game as complete
+};
   
   const bowlingGame = useBowlingGame();
   const { isAuthenticated } = useAuth();

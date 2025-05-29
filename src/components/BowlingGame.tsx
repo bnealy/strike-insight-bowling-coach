@@ -38,7 +38,7 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
             className="text-lg font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors" 
             onClick={() => setActiveGameId(game.id)}
           >
-            Game {gameIndex + 1} {isActive ? '(Active)' : ''}
+            Game {gameIndex + 1}
           </h2>
           <div className="space-x-2">
             {savedStatus && (
@@ -59,14 +59,8 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
               >
                 Hide
               </button>
-            ) : (
-              <button
-                onClick={onDeleteGame}
-                className="bg-red-600 text-white text-xs px-3 py-1 rounded hover:bg-red-700 transition-colors"
-              >
-                Delete
-              </button>
-            )}
+            ) : null
+            }
           </div>
         </div>
         

@@ -273,209 +273,597 @@ const SavedGames = () => {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto p-5 min-h-screen bg-gradient-to-br from-blue-600 to-purple-700">
-        <div className="text-center text-white">
-          <p>Loading your saved games...</p>
+      <>
+        <div className="saved-games-container">
+          {/* Background Image */}
+          <div 
+            className="background-image"
+            style={{
+              backgroundImage: "url('/bowling_alley_photo.jpeg')"
+            }}
+          />
+          
+          {/* Dark Overlay */}
+          <div className="overlay" />
+          
+          <div className="content-wrapper">
+            <div className="loading-content">
+              <p>Loading your saved games...</p>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <style jsx>{`
+          .saved-games-container {
+            position: relative;
+            min-height: 100vh;
+            font-family: 'Comfortaa', cursive;
+          }
+
+          .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+          }
+
+          .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+          }
+
+          .content-wrapper {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+
+          .loading-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50vh;
+            color: white;
+            font-size: 1.2rem;
+          }
+        `}</style>
+      </>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-5 min-h-screen bg-gradient-to-br from-blue-600 to-purple-700">
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Button
-            onClick={() => navigate('/')}
-            variant="outline"
-            className="text-blue border-white hover:bg-white hover:text-blue-600"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Game
-          </Button>
-          <h1 className="text-2xl font-bold text-white">Your Saved Games</h1>
-        </div>
+    <>
+      <div className="saved-games-container">
+        {/* Background Image */}
+        <div 
+          className="background-image"
+          style={{
+            backgroundImage: "url('/bowling_alley_photo.jpeg')"
+          }}
+        />
+        
+        {/* Dark Overlay */}
+        <div className="overlay" />
+        
+        <div className="content-wrapper">
+          {/* Header */}
+          <div className="header-section">
+            <div className="header-actions">
+              <button
+                onClick={() => navigate('/')}
+                className="back-button"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Game
+              </button>
+              <h1 className="page-title">Your Saved Games</h1>
+            </div>
 
-        {/* User Stats Section - Back to working 5 cards */}
-        {userStats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {/* Row 1 - Basic Stats */}
-            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Trophy className="w-5 h-5 text-yellow-300 mr-2" />
-                  <span className="text-white text-sm font-medium">Games Played</span>
+            {/* User Stats Section */}
+            {userStats && (
+              <div className="stats-grid">
+                {/* Basic Stats */}
+                <div className="stat-card">
+                  <div className="stat-header">
+                    <Trophy className="w-5 h-5 text-yellow-300 mr-2" />
+                    <span className="stat-label">Games Played</span>
+                  </div>
+                  <p className="stat-value">{userStats.games_played}</p>
                 </div>
-                <p className="text-white text-2xl font-bold">{userStats.games_played}</p>
-              </CardContent>
-            </Card>
 
-            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <TrendingUp className="w-5 h-5 text-green-300 mr-2" />
-                  <span className="text-white text-sm font-medium">Average Score</span>
+                <div className="stat-card">
+                  <div className="stat-header">
+                    <TrendingUp className="w-5 h-5 text-green-300 mr-2" />
+                    <span className="stat-label">Average Score</span>
+                  </div>
+                  <p className="stat-value">{Number(userStats.average_score).toFixed(0)}</p>
                 </div>
-                <p className="text-white text-2xl font-bold">{Number(userStats.average_score).toFixed(0)}</p>
-              </CardContent>
-            </Card>
 
-            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Target className="w-5 h-5 text-red-300 mr-2" />
-                  <span className="text-white text-sm font-medium">High Score</span>
+                <div className="stat-card">
+                  <div className="stat-header">
+                    <Target className="w-5 h-5 text-red-300 mr-2" />
+                    <span className="stat-label">High Score</span>
+                  </div>
+                  <p className="stat-value">{userStats.highest_score || 'N/A'}</p>
                 </div>
-                <p className="text-white text-2xl font-bold">{userStats.highest_score || 'N/A'}</p>
-              </CardContent>
-            </Card>
 
-            {/* Row 2 - Working Advanced Stats */}
-            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Zap className="w-5 h-5 text-blue-300 mr-2" />
-                  <span className="text-white text-sm font-medium">Strike %</span>
+                <div className="stat-card">
+                  <div className="stat-header">
+                    <Zap className="w-5 h-5 text-blue-300 mr-2" />
+                    <span className="stat-label">Strike %</span>
+                  </div>
+                  <p className="stat-value">{calculateStrikePercentage()}%</p>
+                  <p className="stat-sub">{userStats.total_strikes} strikes</p>
                 </div>
-                <p className="text-white text-2xl font-bold">{calculateStrikePercentage()}%</p>
-                <p className="text-white text-xs opacity-70">{userStats.total_strikes} strikes</p>
-              </CardContent>
-            </Card>
 
-            <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Award className="w-5 h-5 text-purple-300 mr-2" />
-                  <span className="text-white text-sm font-medium">Spare %</span>
+                <div className="stat-card">
+                  <div className="stat-header">
+                    <Award className="w-5 h-5 text-purple-300 mr-2" />
+                    <span className="stat-label">Spare %</span>
+                  </div>
+                  <p className="stat-value">{calculateSparePercentage()}%</p>
+                  <p className="stat-sub">{userStats.total_spares} spares</p>
                 </div>
-                <p className="text-white text-2xl font-bold">{calculateSparePercentage()}%</p>
-                <p className="text-white text-xs opacity-70">{userStats.total_spares} spares</p>
-              </CardContent>
-            </Card>
 
-            {/* COMMENTED OUT - Recent Trend card causing loading issues */}
-            { <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-              <CardContent className="p-4 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <Calendar className="w-5 h-5 text-orange-300 mr-2" />
-                  <span className="text-white text-sm font-medium">Recent Trend</span>
+                <div className="stat-card">
+                  <div className="stat-header">
+                    <Calendar className="w-5 h-5 text-orange-300 mr-2" />
+                    <span className="stat-label">Recent Trend</span>
+                  </div>
+                  {additionalStats && additionalStats.recentGames.length > 0 ? (
+                    <>
+                      <div className="trend-container">
+                        <p className="stat-value">{calculateRecentAverage()}</p>
+                        <span className={`trend-indicator ${getTrendIndicator(calculateRecentAverage(), Number(userStats.average_score)).color}`}>
+                          {getTrendIndicator(calculateRecentAverage(), Number(userStats.average_score)).text}
+                        </span>
+                      </div>
+                      <p className="stat-sub">Last {additionalStats.recentGames.length} games</p>
+                    </>
+                  ) : (
+                    <p className="stat-value">N/A</p>
+                  )}
                 </div>
-                {additionalStats && additionalStats.recentGames.length > 0 ? (
-                  <>
-                    <div className="flex items-center justify-center">
-                      <p className="text-white text-2xl font-bold mr-2">{calculateRecentAverage()}</p>
-                      <span className={`text-lg ${getTrendIndicator(calculateRecentAverage(), Number(userStats.average_score)).color}`}>
-                        {getTrendIndicator(calculateRecentAverage(), Number(userStats.average_score)).text}
-                      </span>
-                    </div>
-                    <p className="text-white text-xs opacity-70">Last {additionalStats.recentGames.length} games</p>
-                  </>
-                ) : (
-                  <p className="text-white text-2xl font-bold">N/A</p>
-                )}
-              </CardContent>
-            </Card> }
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {sessions.length === 0 ? (
-        <Card className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-          <CardContent className="p-6 text-center text-white">
-            <p>No saved games found. Start bowling to see your sessions here!</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {sessions.map((session) => (
-            <Card key={session.id} className="bg-white bg-opacity-10 backdrop-filter backdrop-blur-md border-white border-opacity-20">
-              <Collapsible open={expandedSessions.has(session.id)} onOpenChange={() => toggleSessionExpansion(session.id)}>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-white hover:bg-opacity-5 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {expandedSessions.has(session.id) ? (
-                          <ChevronDown className="w-5 h-5 text-white" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-white" />
-                        )}
-                        <div>
-                          <CardTitle className="text-white text-lg">{session.title}</CardTitle>
-                          <div className="text-white text-sm opacity-80">
-                            {format(new Date(session.created_at), 'MMMM dd, yyyy')} • {session.total_games} games • Avg: {calculateAverageScore(session.games)}
-                          </div>
+          {/* Sessions Section */}
+          {sessions.length === 0 ? (
+            <div className="no-sessions-card">
+              <p>No saved games found. Start bowling to see your sessions here!</p>
+            </div>
+          ) : (
+            <div className="sessions-container">
+              {sessions.map((session) => (
+                <div key={session.id} className="session-card">
+                  <div 
+                    className="session-header"
+                    onClick={() => toggleSessionExpansion(session.id)}
+                  >
+                    <div className="session-info">
+                      {expandedSessions.has(session.id) ? (
+                        <ChevronDown className="w-5 h-5 text-white" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-white" />
+                      )}
+                      <div className="session-details">
+                        <h3 className="session-title">{session.title}</h3>
+                        <div className="session-meta">
+                          {format(new Date(session.created_at), 'MMMM dd, yyyy')} • {session.total_games} games • Avg: {calculateAverageScore(session.games)}
                         </div>
                       </div>
                     </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent>
-                  <CardContent className="pt-0">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-white font-semibold">Games in this session:</h3>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditSession(session.id);
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="text-blue border-white hover:bg-white hover:text-blue-600"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit Session
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {session.games.map((game) => (
-                        <div key={game.id} className="bg-white bg-opacity-10 rounded-lg p-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-white font-medium">Game {game.game_number}</span>
-                            <span className="text-white font-bold text-lg">
-                              {game.is_complete ? game.total_score : 'In Progress'}
-                            </span>
-                          </div>
-                          
-                          <div className="grid grid-cols-10 gap-1">
-                            {game.frames.map((frame) => (
-                              <div key={frame.frame_number} className="bg-white bg-opacity-20 rounded p-2 text-center">
-                                <div className="text-white text-xs mb-1">Frame {frame.frame_number}</div>
-                                <div className="text-white text-sm">
-                                  {frame.frame_number === 10 ? (
-                                    <div className="flex flex-col">
-                                      <div className="flex justify-center gap-1">
-                                        <span>{frame.ball1_pins ?? '-'}</span>
-                                        <span>{frame.ball2_pins ?? '-'}</span>
-                                        <span>{frame.ball3_pins ?? '-'}</span>
+                  </div>
+                  
+                  {expandedSessions.has(session.id) && (
+                    <div className="session-content">
+                      <div className="games-header">
+                        <h4>Games in this session:</h4>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditSession(session.id);
+                          }}
+                          className="edit-button"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit Session
+                        </button>
+                      </div>
+                      
+                      <div className="games-list">
+                        {session.games.map((game) => (
+                          <div key={game.id} className="game-card">
+                            <div className="game-header">
+                              <span className="game-number">Game {game.game_number}</span>
+                              <span className="game-score">
+                                {game.is_complete ? game.total_score : 'In Progress'}
+                              </span>
+                            </div>
+                            
+                            <div className="frames-grid">
+                              {game.frames.map((frame) => (
+                                <div key={frame.frame_number} className="frame-card">
+                                  <div className="frame-number">Frame {frame.frame_number}</div>
+                                  <div className="frame-content">
+                                    {frame.frame_number === 10 ? (
+                                      <div className="frame-display">
+                                        <div className="balls-display">
+                                          <span>{frame.ball1_pins ?? '-'}</span>
+                                          <span>{frame.ball2_pins ?? '-'}</span>
+                                          <span>{frame.ball3_pins ?? '-'}</span>
+                                        </div>
+                                        <div className="frame-score">{frame.score ?? ''}</div>
                                       </div>
-                                      <div className="font-bold">{frame.score ?? ''}</div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-col">
-                                      <div className="flex justify-center gap-1">
-                                        <span>{frame.ball1_pins ?? '-'}</span>
-                                        <span>{frame.ball2_pins ?? '-'}</span>
+                                    ) : (
+                                      <div className="frame-display">
+                                        <div className="balls-display">
+                                          <span>{frame.ball1_pins ?? '-'}</span>
+                                          <span>{frame.ball2_pins ?? '-'}</span>
+                                        </div>
+                                        <div className="frame-score">{frame.score ?? ''}</div>
                                       </div>
-                                      <div className="font-bold">{frame.score ?? ''}</div>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          ))}
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+
+      <style jsx>{`
+        .saved-games-container {
+          position: relative;
+          min-height: 100vh;
+          font-family: 'Comfortaa', cursive;
+        }
+
+        .background-image {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+        }
+
+        .overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1;
+        }
+
+        .content-wrapper {
+          position: relative;
+          z-index: 10;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+
+        .header-section {
+          margin-bottom: 30px;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .back-button {
+          display: flex;
+          align-items: center;
+          background: rgba(139, 69, 19, 0.8);
+          color: white;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          padding: 12px 20px;
+          border-radius: 25px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-family: 'Comfortaa', cursive;
+          font-size: 0.9rem;
+          backdrop-filter: blur(10px);
+        }
+
+        .back-button:hover {
+          background: rgba(139, 69, 19, 0.9);
+          border-color: rgba(255, 255, 255, 0.6);
+          transform: translateY(-2px);
+        }
+
+        .page-title {
+          font-size: 2rem;
+          font-weight: bold;
+          color: white;
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+          margin: 0;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .stat-card {
+          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
+          backdrop-filter: blur(20px);
+          border-radius: 12px;
+          padding: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          text-align: center;
+        }
+
+        .stat-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 8px;
+        }
+
+        .stat-label {
+          color: white;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+
+        .stat-value {
+          color: white;
+          font-size: 2rem;
+          font-weight: bold;
+          margin: 8px 0;
+        }
+
+        .stat-sub {
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.75rem;
+          margin: 0;
+        }
+
+        .trend-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .trend-indicator {
+          font-size: 1.2rem;
+        }
+
+        .no-sessions-card {
+          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 0%);
+          backdrop-filter: blur(20px);
+          border-radius: 12px;
+          padding: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          text-align: center;
+          color: white;
+        }
+
+        .sessions-container {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .session-card {
+          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 80%);
+          backdrop-filter: blur(20px);
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          overflow: hidden;
+        }
+
+        .session-header {
+          cursor: pointer;
+          padding: 20px;
+          transition: background-color 0.3s ease;
+        }
+
+        .session-header:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .session-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .session-details {
+          flex: 1;
+        }
+
+        .session-title {
+          color: white;
+          font-size: 1.25rem;
+          font-weight: bold;
+          margin: 0 0 4px 0;
+        }
+
+        .session-meta {
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.875rem;
+        }
+
+        .session-content {
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
+          padding: 20px;
+        }
+
+        .games-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .games-header h4 {
+          color: white;
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .edit-button {
+          display: flex;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          padding: 8px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.875rem;
+        }
+
+        .edit-button:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .games-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .game-card {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .game-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .game-number {
+          color: white;
+          font-weight: 600;
+        }
+
+        .game-score {
+          color: white;
+          font-weight: bold;
+          font-size: 1.125rem;
+        }
+
+        .frames-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+          gap: 8px;
+        }
+
+        .frame-card {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 6px;
+          padding: 8px;
+          text-align: center;
+        }
+
+        .frame-number {
+          color: white;
+          font-size: 0.75rem;
+          margin-bottom: 4px;
+        }
+
+        .frame-display {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .balls-display {
+          display: flex;
+          justify-content: center;
+          gap: 4px;
+          color: white;
+          font-size: 0.875rem;
+        }
+
+        .frame-score {
+          color: white;
+          font-weight: bold;
+          font-size: 0.875rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .content-wrapper {
+            padding: 16px;
+          }
+
+          .header-actions {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .page-title {
+            font-size: 1.5rem;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+          }
+
+          .stat-card {
+            padding: 16px;
+          }
+
+          .stat-value {
+            font-size: 1.5rem;
+          }
+
+          .frames-grid {
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 4px;
+          }
+
+          .games-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+        }
+      `}</style>
+    </>
   );
 };
 

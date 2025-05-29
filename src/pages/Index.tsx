@@ -1,13 +1,8 @@
-
 import React from 'react';
-import BowlingScorecard from '../components/BowlingScorecard';
+import LandingPage from '../components/LandingPage';
 
 const Index = () => {
-  return (
-    <div className="main-container">
-      <BowlingScorecard />
-    </div>
-  );
+  return <LandingPage />;
 };
 
 export default Index;
