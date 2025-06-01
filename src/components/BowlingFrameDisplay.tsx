@@ -23,19 +23,10 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
   handleBallClick,
   frames
 }) => {
-  // Determine special states for styling
-  const isStrike = frameNumber < 10 && frame.balls[0] === 10;
-  const isSpare = frameNumber < 10 && frame.balls[0] !== 10 && (frame.balls[0] || 0) + (frame.balls[1] || 0) === 10;
-  const isGutter = frame.balls.some(ball => ball === 0);
-
-  // Build CSS classes
+  // Build CSS classes - ONLY highlight editing frame
   let frameClasses = 'bowling-frame';
-  if (isCurrentFrame) frameClasses += ' current-frame';
   if (isEditing) frameClasses += ' editing-frame';
   if (frameNumber === 10) frameClasses += ' tenth-frame';
-  if (isStrike) frameClasses += ' strike';
-  if (isSpare) frameClasses += ' spare';
-  if (isGutter) frameClasses += ' gutter';
 
   return (
     <>
@@ -60,7 +51,7 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
                     className="ball-score"
                     style={cssProps({
                       borderRight: ballIndex < 2 ? '1px solid #333' : 'none',
-                      backgroundColor: isEditing && frame.balls[ballIndex] !== null ? '#fff3cd' : 'transparent'
+                      backgroundColor: 'transparent' // Removed editing highlight
                     })}
                     onClick={() => handleBallClick(frameNumber, ballIndex)}
                   >
@@ -76,7 +67,7 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
                     className="ball-score"
                     style={cssProps({
                       borderRight: ballIndex === 0 ? '1px solid #333' : 'none',
-                      backgroundColor: isEditing && frame.balls[ballIndex] !== null ? '#fff3cd' : 'transparent'
+                      backgroundColor: 'transparent' // Removed editing highlight
                     })}
                     onClick={() => handleBallClick(frameNumber, ballIndex)}
                   >
@@ -116,14 +107,10 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .bowling-frame.current-frame {
+        /* ONLY editing frame gets green color */
+        .bowling-frame.editing-frame {
           border-color: #28a745;
           background-color: #f8fff9;
-        }
-
-        .bowling-frame.editing-frame {
-          border-color: #ffc107;
-          background-color: #fffcf0;
         }
 
         /* Frame content layout */
@@ -300,22 +287,6 @@ const BowlingFrameDisplay: React.FC<BowlingFrameDisplayProps> = ({
           .bowling-frame.tenth-frame {
             min-width: 70px;
           }
-        }
-
-        /* Special states */
-        .bowling-frame.strike {
-          background-color: #fff3cd;
-          border-color: #ffc107;
-        }
-
-        .bowling-frame.spare {
-          background-color: #d4edda;
-          border-color: #28a745;
-        }
-
-        .bowling-frame.gutter {
-          background-color: #f8d7da;
-          border-color: #dc3545;
         }
 
         /* Accessibility improvements */

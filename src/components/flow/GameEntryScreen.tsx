@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useSaveGames } from '@/hooks/useSaveGames';
 import PinButtons from '../PinButtons';
+import { calculateScoresForGame } from '@/utils/bowlingScoreUtils';
 
 interface GameEntryScreenProps {
   gameCount: number;
@@ -33,6 +34,7 @@ interface GameEntryScreenProps {
   updateGameFrames?: (gameId: number, frames: any[], totalScore: number) => void;
   sessions?: any[];
   markSessionAsSaved?: (sessionId: number) => void;
+  updateActiveGame?: (updates: Partial<Game>) => void;
 }
 
 const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
@@ -53,7 +55,11 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   updateGameFrames,
   sessions = [],
   markSessionAsSaved,
+  updateActiveGame,
 }) => {
+  // ADD UPDATE LOGIC TOGGLE
+  const USE_UPDATE_LOGIC = true; // Set to true when you want to enable smart update logic
+
   const [showRecalculateButton, setShowRecalculateButton] = React.useState(false);
   const [isEditMode, setIsEditMode] = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
@@ -69,6 +75,484 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
   
   // Ref to measure game box dimensions
   const gameBoxRef = React.useRef<HTMLDivElement>(null);
+
+ // REPLACE YOUR SMART WRAPPER FUNCTIONS in GameEntryScreen.tsx with these:
+// REPLACE YOUR SMART WRAPPER FUNCTIONS in GameEntryScreen.tsx with these:
+
+
+const findNextEmptyFrame = (frames: any[]) => {
+  for (let i = 1; i <= 10; i++) {
+    const frameIdx = i - 1;
+    const frame = frames[frameIdx];
+    if (frame && frame.balls[0] === null) {
+      return i;
+    }
+  }
+  return null;
+};
+
+// Helper function to check if frame is complete
+const isFrameComplete = (frameNum: number, frames: any[]) => {
+  const frameIdx = frameNum - 1;
+  const frame = frames[frameIdx];
+  if (!frame) return false;
+  
+  if (frameNum === 10) {
+    const ball1 = frame.balls[0];
+    const ball2 = frame.balls[1];
+    const ball3 = frame.balls[2];
+    
+    if (ball1 === null) return false;
+    if (ball1 === 10) {
+      return ball2 !== null && ball3 !== null;
+    } else {
+      if (ball2 === null) return false;
+      if (ball1 + ball2 === 10) {
+        return ball3 !== null;
+      }
+      return true;
+    }
+  } else {
+    const ball1 = frame.balls[0];
+    const ball2 = frame.balls[1];
+    
+    if (ball1 === 10) return true;
+    return ball1 !== null && ball2 !== null;
+  }
+};
+/**
+ * Smart wrapper for handleBallClick
+ * Enforces ball order: must start at ball 1, then proceed to ball 2, etc.
+ */
+const smartHandleBallClick = (frameIndex: number, ballIndex: number) => {
+  console.log(`🎯 smartHandleBallClick called - Frame: ${frameIndex}, Ball: ${ballIndex}, USE_UPDATE_LOGIC: ${USE_UPDATE_LOGIC}`);
+  
+  if (USE_UPDATE_LOGIC) {
+    const currentGame = games[0];
+    const frames = currentGame?.frames ?? [];
+    const frame = frames[frameIndex - 1]; // frameIndex is 1-based, array is 0-based
+    
+    if (!frame) {
+      console.error('❌ Invalid frame index:', frameIndex);
+      return;
+    }
+    
+    // SMART LOGIC: Enforce ball order
+    if (frameIndex === 10) {
+      // 10th frame: must fill balls in order 1 → 2 → 3
+      if (ballIndex === 1 && frame.balls[0] === null) {
+        toast({
+          title: "Invalid Edit",
+          description: "You must fill Ball 1 before editing Ball 2.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (ballIndex === 2 && (frame.balls[0] === null || frame.balls[1] === null)) {
+        toast({
+          title: "Invalid Edit", 
+          description: "You must fill Ball 1 and Ball 2 before editing Ball 3.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Frames 1-9: must fill ball 1 before ball 2
+      if (ballIndex === 1 && frame.balls[0] === null) {
+        toast({
+          title: "Invalid Edit",
+          description: "You must fill Ball 1 before editing Ball 2.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // SMART LOGIC: Check current editing state and enforce rules
+    const editingFrame = currentGame?.editingFrame;
+    const editingBall = currentGame?.editingBall;
+    
+  // Function to check if a frame is incomplete
+  const isFrameIncomplete = (frameNum: number) => {
+    const frameIdx = frameNum - 1;
+    const frameToCheck = frames[frameIdx];
+    if (!frameToCheck) return false;
+    
+    if (frameNum === 10) {
+      // 10th frame: check based on what's required
+      const ball1 = frameToCheck.balls[0];
+      const ball2 = frameToCheck.balls[1];
+      const ball3 = frameToCheck.balls[2];
+      
+      if (ball1 === null) return false; // Need ball 1
+      if (ball1 === 10) {
+        // Strike: need balls 2 and 3
+        return ball2 === null || ball3 === null;
+      } else {
+        // Not a strike: need ball 2
+        if (ball2 === null) return true;
+        if (ball1 + ball2 === 10) {
+          // Spare: need ball 3
+          return ball3 === null;
+        }
+        // Not spare, don't need ball 3
+        return false;
+      }
+    } else {
+      // Frames 1-9: need both balls unless strike
+      const ball1 = frameToCheck.balls[0];
+      const ball2 = frameToCheck.balls[1];
+      
+      if (ball1 === null) return false;
+      if (ball1 === 10) return false; // Strike is complete
+      return ball2 === null; // Need ball 2
+    }
+  };
+  
+  // CASE 1: User is currently editing a frame
+ // const editingFrame = currentGame?.editingFrame;
+ // const editingBall = currentGame?.editingBall;
+
+ console.log('🔍 Navigation Debug:', {
+  clickingFrame: frameIndex,
+  editingFrame: editingFrame,
+  editingBall: editingBall,
+  editingFrameState: editingFrame ? frames[editingFrame - 1]?.balls : null,
+  isEditingFrameIncomplete: editingFrame ? isFrameIncomplete(editingFrame) : null,
+  willBlock: editingFrame !== null && editingBall !== null && isFrameIncomplete(editingFrame) && frameIndex !== editingFrame
+});
+  
+  if (editingFrame !== null && editingBall !== null) {
+    // Check if current editing frame is incomplete
+    if (isFrameIncomplete(editingFrame)) {
+      // If trying to click somewhere else while current frame is incomplete
+      if (frameIndex !== editingFrame) {
+        toast({
+          title: "Complete Current Frame",
+          description: `You must complete Frame ${editingFrame} before editing another frame.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    // If current frame is complete, allow navigation to anywhere
+  }
+  
+  console.log('✅ Smart validation passed, proceeding with ball click');
+  //console.log('✅ Smart validation passed, proceeding with ball click');
+
+  // SMART REDIRECT: Always start editing from Ball 1
+  let targetBallIndex = ballIndex;
+  
+  if (updateActiveGame) {
+    console.log('🔧 Setting editing state directly via updateActiveGame');
+    updateActiveGame({
+      editingFrame: frameIndex,
+      editingBall: targetBallIndex
+    });
+  } else {
+    // Frame 10: Check if we need to redirect based on what's filled
+    const ball1 = frame.balls[0];
+    const ball2 = frame.balls[1];
+    
+    if (ball1 === null) {
+      targetBallIndex = 0; // Start with Ball 1
+    } else if (ball2 === null && ballIndex === 2) {
+      targetBallIndex = 1; // If clicking Ball 3 but Ball 2 is empty, go to Ball 2
+    }
+    // Otherwise use the clicked ball index for 10th frame
+  }
+  
+  console.log(`🎯 Redirecting click from Ball ${ballIndex + 1} to Ball ${targetBallIndex + 1}`);
+  console.log('🔧 About to call handleBallClick with:', {
+    frameIndex: frameIndex,        // Should this be frameIndex - 1?
+    targetBallIndex: targetBallIndex,
+    frameState: frames[frameIndex - 1]?.balls
+  });
+  handleBallClick(frameIndex, targetBallIndex);
+} else {
+  // Original behavior
+  console.log('📝 Using original handleBallClick behavior');
+  handleBallClick(frameIndex, ballIndex);
+}
+};
+
+/**
+ * Smart wrapper for enterPins
+ * Prevents navigation away from incomplete frames and auto-navigates to next empty frame
+ */
+const smartEnterPins = (pins: number) => {
+  console.log(`🎳 smartEnterPins called - Pins: ${pins}, USE_UPDATE_LOGIC: ${USE_UPDATE_LOGIC}`);
+  
+  if (USE_UPDATE_LOGIC) {
+    const currentGame = games[0];
+    const frames = currentGame?.frames ?? [];
+    
+    if (!currentGame || !updateActiveGame) {
+      console.error('❌ No active game or updateActiveGame function found');
+      return;
+    }
+    
+    // Get current editing position
+    let targetFrame: number, targetBall: number;
+    if (currentGame.editingFrame !== null && currentGame.editingBall !== null) {
+      targetFrame = currentGame.editingFrame;
+      targetBall = currentGame.editingBall;
+    } else {
+      targetFrame = currentGame.currentFrame;
+      targetBall = currentGame.currentBall;
+    }
+    
+    console.log('📊 Smart enterPins state:', {
+      targetFrame,
+      targetBall,
+      pins,
+      existingValue: frames[targetFrame - 1]?.balls[targetBall],
+      isCreating: frames[targetFrame - 1]?.balls[targetBall] === null,
+      isUpdating: frames[targetFrame - 1]?.balls[targetBall] !== null
+    });
+    
+    // Create new frames array with the pin entry
+    const newFrames = [...frames];
+    const frameIndex = targetFrame - 1;
+    const frame = newFrames[frameIndex];
+    console.log('🔍 Frame states before clearing:', {
+      frame1: newFrames[0]?.balls,
+      frame2: newFrames[1]?.balls,
+      frame3: newFrames[2]?.balls,
+      targetFrame: targetFrame,
+      willClear: currentGame.editingFrame !== null && currentGame.editingBall !== null && targetFrame === currentGame.editingFrame
+    });
+    
+    
+    // Clear future balls and scores when editing (keep original behavior)
+if (currentGame.editingFrame !== null && currentGame.editingBall !== null && targetFrame === currentGame.editingFrame) { 
+  console.log('🧹 Clearing logic triggered');     
+  if (targetFrame === 10) {
+        for (let i = targetBall; i < 3; i++) {
+          frame.balls[i] = null;
+        }
+      } else {
+        console.log('🚫 Clearing logic skipped');
+        for (let i = targetBall; i < 2; i++) {
+          frame.balls[i] = null;
+        }
+      }
+      
+      for (let i = frameIndex+1; i < 10; i++) {
+        newFrames[i].score = null;
+      }
+    }
+    
+    // Validate and set the pin value
+    let isValidMove = false;
+    let nextEditingFrame: number | null = targetFrame;
+    let nextEditingBall: number | null = targetBall;
+    let nextCurrentFrame = currentGame.currentFrame;
+    let nextCurrentBall = currentGame.currentBall;
+    
+    if (targetFrame < 10) {
+      // Frames 1-9 logic
+      if (targetBall === 0) {
+        if (pins > 10) {
+          toast({
+            title: "Invalid Entry",
+            description: "Cannot knock down more than 10 pins.",
+            variant: "destructive",
+          });
+          return;
+        }
+        frame.balls[0] = pins;
+        isValidMove = true;
+        
+        if (pins === 10) {
+          // Strike - frame complete, determine next editing position
+          const nextEmptyFrame = findNextEmptyFrame(newFrames);
+          if (nextEmptyFrame) {
+            nextEditingFrame = nextEmptyFrame;
+            nextEditingBall = 0;
+          } else {
+            nextEditingFrame = null;
+            nextEditingBall = null;
+          }
+          nextCurrentFrame = nextEmptyFrame || (targetFrame < 10 ? targetFrame + 1 : targetFrame);          
+          nextCurrentBall = 0;
+        } else {
+          // Not a strike, move to ball 2
+          nextEditingBall = 1;
+          nextCurrentBall = 1;
+        }
+      } else if (targetBall === 1) {
+        if ((frame.balls[0] || 0) + pins > 10) {
+          toast({
+            title: "Invalid Entry",
+            description: `Cannot knock down more than ${10 - (frame.balls[0] || 0)} pins.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        frame.balls[1] = pins;
+        isValidMove = true;
+        
+        // Frame complete, determine next editing position
+        const nextEmptyFrame = findNextEmptyFrame(newFrames);
+        if (nextEmptyFrame) {
+          nextEditingFrame = nextEmptyFrame;
+          nextEditingBall = 0;
+        } else {
+          nextEditingFrame = null;
+          nextEditingBall = null;
+        }
+        nextCurrentFrame = nextEmptyFrame|| targetFrame + 1;
+        nextCurrentBall = 0;
+      }
+    } else {
+      // Frame 10 logic
+      if (targetBall === 0) {
+        if (pins > 10) {
+          toast({
+            title: "Invalid Entry", 
+            description: "Cannot knock down more than 10 pins.",
+            variant: "destructive",
+          });
+          return;
+        }
+        frame.balls[0] = pins;
+        isValidMove = true;
+        nextEditingBall = 1;
+        nextCurrentBall = 1;
+      } else if (targetBall === 1) {
+        if (frame.balls[0] === 10) {
+          // After strike, ball 2 can be 0-10
+          if (pins > 10) {
+            toast({
+              title: "Invalid Entry",
+              description: "Cannot knock down more than 10 pins.",
+              variant: "destructive",
+            });
+            return;
+          }
+          frame.balls[1] = pins;
+          isValidMove = true;
+          nextEditingBall = 2;
+          nextCurrentBall = 2;
+        } else {
+          // After non-strike, check spare
+          if ((frame.balls[0] || 0) + pins > 10) {
+            toast({
+              title: "Invalid Entry",
+              description: `Cannot knock down more than ${10 - (frame.balls[0] || 0)} pins.`,
+              variant: "destructive",
+            });
+            return;
+          }
+          frame.balls[1] = pins;
+          isValidMove = true;
+          
+          if ((frame.balls[0] || 0) + pins === 10) {
+            // Spare - need ball 3
+            nextEditingBall = 2;
+            nextCurrentBall = 2;
+          } else {
+            // Not spare - frame complete
+            nextEditingFrame = null;
+            nextEditingBall = null;
+            nextCurrentBall = 3;
+          }
+        }
+      } else if (targetBall === 2) {
+        if (pins > 10) {
+          toast({
+            title: "Invalid Entry",
+            description: "Cannot knock down more than 10 pins.",
+            variant: "destructive",
+          });
+          return;
+        }
+        frame.balls[2] = pins;
+        isValidMove = true;
+        
+        // 10th frame complete
+        nextEditingFrame = null;
+        nextEditingBall = null;
+        nextCurrentBall = 3;
+      }
+    }
+    
+    if (!isValidMove) return;
+    
+    // Update the game state with our controlled logic
+    const updatedGameData = {
+      frames: newFrames,
+      editingFrame: nextEditingFrame,
+      editingBall: nextEditingBall,
+      currentFrame: nextCurrentFrame,
+      currentBall: nextCurrentBall
+    };
+    
+    // Calculate scores
+  const calculatedGame = calculateScoresForGame({
+      ...currentGame,
+      ...updatedGameData
+ //     console.log('🧪 Bypassing score calculation');
+ //   console.log('🔍 Frame states after all changes:', {
+ //     frame1: newFrames[0]?.balls,
+ //     frame2: newFrames[1]?.balls,
+ //     frame3: newFrames[2]?.balls
+    });
+    
+//    console.log('🔍 Just before updateActiveGame:', {
+//      frame2BeforeCalc: newFrames[1]?.balls,
+//      frame2AfterCalc: calculatedGame.frames[1]?.balls,
+//      updatedGameDataFrames: updatedGameData.frames[1]?.balls
+//    });
+    // Apply all updates
+    updateActiveGame({
+      ...updatedGameData,
+      frames: calculatedGame.frames,
+      totalScore: calculatedGame.totalScore,
+      gameComplete: calculatedGame.gameComplete
+    });
+    
+    // Check if frame was completed and show appropriate message
+    setTimeout(() => {
+      const wasFrameCompleted = isFrameComplete(targetFrame, newFrames);
+      if (wasFrameCompleted) {
+        console.log(`✅ Frame ${targetFrame} completed via smart logic`);
+        
+        const nextEmpty = findNextEmptyFrame(newFrames);
+        if (nextEmpty) {
+          toast({
+            title: "Frame Complete!",
+            description: `Frame ${targetFrame} completed. Now editing Frame ${nextEmpty}.`,
+            variant: "default",
+          });
+        } else {
+          // Check if game is complete
+          const allComplete = newFrames.every((_, idx) => isFrameComplete(idx + 1, newFrames));
+          if (allComplete) {
+            toast({
+              title: "Game Complete!",
+              description: `Congratulations! Final score: ${calculatedGame.totalScore}`,
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "Frame Complete!",
+              description: `Frame ${targetFrame} completed. You can edit any frame.`,
+              variant: "default",
+            });
+          }
+        }
+      }
+    }, 100);
+    
+  } else {
+    // Original behavior
+    console.log('📝 Using original enterPins behavior');
+    enterPins(pins);
+  }
+};
 
   // Measure game box dimensions
   React.useEffect(() => {
@@ -455,6 +939,13 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
       console.error('❌ Error stack:', error.stack);
     }
   };
+
+  console.log('🔍 Debug game state:', {
+    editingFrame: games[0]?.editingFrame,
+    editingBall: games[0]?.editingBall,
+    currentFrame: games[0]?.currentFrame,
+    currentBall: games[0]?.currentBall
+  });
   
 
   return (
@@ -481,7 +972,7 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
                 gameIndex={0}
                 setActiveGameId={setActiveGameId}
                 clearGame={() => clearGame(activeSessionId, games[0].id)}
-                handleBallClick={handleBallClick}
+                handleBallClick={smartHandleBallClick}
                 toggleVisibility={() => toggleGameVisibility(activeSessionId, games[0].id)}
                 savedStatus={activeSession?.savedToDatabase}
                 currentFrame={games[0].currentFrame}
@@ -496,7 +987,7 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
           {isEditMode && games && games.length > 0 && (
             <div className="pin-selector-section">
               <PinButtons
-                onPinClick={enterPins}
+                onPinClick={smartEnterPins}
                 currentFrame={games[0].currentFrame || 0}
                 currentBall={games[0].currentBall || 0}
                 frames={games[0].frames || []}
@@ -724,7 +1215,7 @@ const GameEntryScreen: React.FC<GameEntryScreenProps> = ({
         .game-entry-container {
           position: relative;
           min-height: 100vh;
-          font-family: 'Comfortaa', cursive;
+          font-family: 'Comfortaa';
         }
 
         .background-image {

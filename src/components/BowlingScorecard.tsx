@@ -114,6 +114,7 @@ const BowlingScorecard = () => {
         updateGameFrames={updateGameFrames}
         sessions={gameManagement.sessions || []}
         markSessionAsSaved={gameManagement.markSessionAsSaved}
+        updateActiveGame={gameManagement.updateActiveGame}
         
         // New props for multiple game functionality
         addNewGame={handleAddNewGame}

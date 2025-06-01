@@ -393,15 +393,37 @@ export const useBowlingGame = () => {
   };
 
   const handleBallClick = (frameIndex: number, ballIndex: number) => {
-    if (!activeGame) return;
+    console.log('🔧 Original handleBallClick called with:', {
+      frameIndex,
+      ballIndex,
+      activeGame: !!activeGame,
+      gameComplete: activeGame?.gameComplete
+    });
+
+    if (!activeGame) {
+      console.log('❌ No active game, returning early');
+      return;
+    }
+    const targetBall = activeGame.frames[frameIndex].balls[ballIndex];
+    const isCurrentPosition = frameIndex === activeGame.currentFrame && ballIndex === activeGame.currentBall;
     
+    console.log('🔧 handleBallClick validation:', {
+      targetBall,
+      isCurrentPosition,
+      currentFrame: activeGame.currentFrame,
+      currentBall: activeGame.currentBall,
+      gameComplete: activeGame.gameComplete
+    });
+
     if (activeGame.frames[frameIndex].balls[ballIndex] === null && 
         !(frameIndex === activeGame.currentFrame && ballIndex === activeGame.currentBall) &&
         !activeGame.gameComplete) {
+      console.log('❌ Blocked by null ball check');
       return;
     }
     
     if (activeGame.gameComplete && activeGame.frames[frameIndex].balls[ballIndex] === null) {
+      console.log('❌ Blocked by game complete check');
       return;
     }
     

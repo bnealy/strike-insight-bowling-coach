@@ -55,7 +55,7 @@ const Header = () => {
         <div className="header-content">
           <div className="logo-section">
             <h1 className="logo">FrameWork</h1>
-            <sub className="tagline">Gutters and strikes</sub>
+            <sub className="tagline">Strikes and gutters</sub>
           </div>
           <div className="header-actions">
             {isAuthenticated ? (
