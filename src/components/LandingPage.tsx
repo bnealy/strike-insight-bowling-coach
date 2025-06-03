@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
+import { useAuth } from '../contexts/AuthContext';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleStartGame = () => {
     navigate('/game-entry');
@@ -37,11 +39,14 @@ const LandingPage: React.FC = () => {
             <p className="value-proposition">Bowl. Upload your games. Track your stats.</p>
             
             <div className="cta-container">
-              <button 
+              {isAuthenticated && (
+                <button 
                 className="cta-button cta-secondary" 
-                onClick={viewSavedGames}>
+                onClick={viewSavedGames}
+                >
                 view stats
               </button>
+              )}
               <button className="cta-button cta-primary" onClick={handleStartGame}>
                 add a game
               </button>
