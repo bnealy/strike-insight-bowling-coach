@@ -125,7 +125,7 @@ const isFrameComplete = (frameNum: number, frames: any[]) => {
  * Enforces ball order: must start at ball 1, then proceed to ball 2, etc.
  */
 const smartHandleBallClick = (frameIndex: number, ballIndex: number) => {
-  console.log(`🎯 smartHandleBallClick called - Frame: ${frameIndex}, Ball: ${ballIndex}, USE_UPDATE_LOGIC: ${USE_UPDATE_LOGIC}`);
+ // console.log(`🎯 smartHandleBallClick called - Frame: ${frameIndex}, Ball: ${ballIndex}, USE_UPDATE_LOGIC: ${USE_UPDATE_LOGIC}`);
   
   if (USE_UPDATE_LOGIC) {
     const currentGame = games[0];
@@ -133,7 +133,7 @@ const smartHandleBallClick = (frameIndex: number, ballIndex: number) => {
     const frame = frames[frameIndex - 1]; // frameIndex is 1-based, array is 0-based
     
     if (!frame) {
-      console.error('❌ Invalid frame index:', frameIndex);
+ //     console.error('❌ Invalid frame index:', frameIndex);
       return;
     }
     
@@ -213,14 +213,6 @@ const smartHandleBallClick = (frameIndex: number, ballIndex: number) => {
  // const editingFrame = currentGame?.editingFrame;
  // const editingBall = currentGame?.editingBall;
 
- console.log('🔍 Navigation Debug:', {
-  clickingFrame: frameIndex,
-  editingFrame: editingFrame,
-  editingBall: editingBall,
-  editingFrameState: editingFrame ? frames[editingFrame - 1]?.balls : null,
-  isEditingFrameIncomplete: editingFrame ? isFrameIncomplete(editingFrame) : null,
-  willBlock: editingFrame !== null && editingBall !== null && isFrameIncomplete(editingFrame) && frameIndex !== editingFrame
-});
   
   if (editingFrame !== null && editingBall !== null) {
     // Check if current editing frame is incomplete
@@ -282,7 +274,6 @@ const smartHandleBallClick = (frameIndex: number, ballIndex: number) => {
  * Prevents navigation away from incomplete frames and auto-navigates to next empty frame
  */
 const smartEnterPins = (pins: number) => {
-  console.log(`🎳 smartEnterPins called - Pins: ${pins}, USE_UPDATE_LOGIC: ${USE_UPDATE_LOGIC}`);
   
   if (USE_UPDATE_LOGIC) {
     const currentGame = games[0];
@@ -303,37 +294,19 @@ const smartEnterPins = (pins: number) => {
       targetBall = currentGame.currentBall;
     }
     
-    console.log('📊 Smart enterPins state:', {
-      targetFrame,
-      targetBall,
-      pins,
-      existingValue: frames[targetFrame - 1]?.balls[targetBall],
-      isCreating: frames[targetFrame - 1]?.balls[targetBall] === null,
-      isUpdating: frames[targetFrame - 1]?.balls[targetBall] !== null
-    });
-    
     // Create new frames array with the pin entry
     const newFrames = [...frames];
     const frameIndex = targetFrame - 1;
     const frame = newFrames[frameIndex];
-    console.log('🔍 Frame states before clearing:', {
-      frame1: newFrames[0]?.balls,
-      frame2: newFrames[1]?.balls,
-      frame3: newFrames[2]?.balls,
-      targetFrame: targetFrame,
-      willClear: currentGame.editingFrame !== null && currentGame.editingBall !== null && targetFrame === currentGame.editingFrame
-    });
     
     
     // Clear future balls and scores when editing (keep original behavior)
-if (currentGame.editingFrame !== null && currentGame.editingBall !== null && targetFrame === currentGame.editingFrame) { 
-  console.log('🧹 Clearing logic triggered');     
+if (currentGame.editingFrame !== null && currentGame.editingBall !== null && targetFrame === currentGame.editingFrame) {  
   if (targetFrame === 10) {
         for (let i = targetBall; i < 3; i++) {
           frame.balls[i] = null;
         }
       } else {
-        console.log('🚫 Clearing logic skipped');
         for (let i = targetBall; i < 2; i++) {
           frame.balls[i] = null;
         }
@@ -518,11 +491,10 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
     setTimeout(() => {
       const wasFrameCompleted = isFrameComplete(targetFrame, newFrames);
       if (wasFrameCompleted) {
-        console.log(`✅ Frame ${targetFrame} completed via smart logic`);
         
         const nextEmpty = findNextEmptyFrame(newFrames);
         if (nextEmpty) {
-          toast({
+          console.log({
             title: "Frame Complete!",
             description: `Frame ${targetFrame} completed. Now editing Frame ${nextEmpty}.`,
             variant: "default",
@@ -549,7 +521,6 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
     
   } else {
     // Original behavior
-    console.log('📝 Using original enterPins behavior');
     enterPins(pins);
   }
 };
@@ -746,6 +717,8 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
     }
   };
 
+  
+
   const calculateBowlingScores = (frames: any[]) => {
     console.log('🧮 Starting calculateBowlingScores with frames:', frames);
     
@@ -939,13 +912,6 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
       console.error('❌ Error stack:', error.stack);
     }
   };
-
-  console.log('🔍 Debug game state:', {
-    editingFrame: games[0]?.editingFrame,
-    editingBall: games[0]?.editingBall,
-    currentFrame: games[0]?.currentFrame,
-    currentBall: games[0]?.currentBall
-  });
   
 
   return (
@@ -963,7 +929,7 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
         <div className="overlay" />
         
         <div className="content-wrapper">
-          {/* Bowling Game Display - No container wrapper */}
+          {/* Bowling Game Display */}
           {games && games.length > 0 && (
             <div className="bowling-game-section">
               <BowlingGame
@@ -983,7 +949,121 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
             </div>
           )}
 
-          {/* Pin Selector - Only show when in edit mode */}
+          {/* Main Action Buttons */}
+          <div className="actions-grid">
+            {/* Left side: Editing and Upload actions */}
+            <div className="left-actions">
+              <div className="action-column">
+                <button
+                  onClick={handleManualScoreInput}
+                  className={`action-button ${isEditMode ? 'active-edit' : 'primary-action'}`}
+                >
+                  {isEditMode ? '✓ Done Editing' : 'Manually Input Score'}
+                </button>
+              </div>
+         {!isEditMode && (
+                <>
+              <div className="action-column">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="file-input"
+                  id="photo-upload"
+                />
+                <label
+                  htmlFor="photo-upload"
+                  className="action-button primary-action"
+                >
+                  Upload Score Photo
+                </label>
+                
+                {/* Mock Data Button - Only for specific user */}
+                {shouldShowMockButton && (
+                  <button 
+                    onClick={() => {
+                      console.log('Test button clicked - simulating scorecard upload');
+                      const mockScores = [
+                        { frameNumber: 1, ball1: 7, ball2: 3, ball3: null },
+                        { frameNumber: 2, ball1: 10, ball2: null, ball3: null },
+                        { frameNumber: 3, ball1: 8, ball2: 1, ball3: null },
+                        { frameNumber: 4, ball1: 6, ball2: 4, ball3: null },
+                        { frameNumber: 5, ball1: 10, ball2: null, ball3: null },
+                        { frameNumber: 6, ball1: 9, ball2: 0, ball3: null },
+                        { frameNumber: 7, ball1: 8, ball2: 2, ball3: null },
+                        { frameNumber: 8, ball1: 7, ball2: 2, ball3: null },
+                        { frameNumber: 9, ball1: 10, ball2: null, ball3: null },
+                        { frameNumber: 10, ball1: 9, ball2: 1, ball3: 7 }
+                      ];
+                      handleScoresDetected(mockScores);
+                    }}
+                    className="mock-button"
+                  >
+                    🧪 Test Mock Data
+                  </button>
+                )}
+              </div>
+
+              <div className="action-column">
+                {selectedFile && (
+                  <button
+                    onClick={processImage}
+                    disabled={isProcessing}
+                    className="action-button primary-action"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Analyze Scorecard'
+                    )}
+                  </button>
+                )}
+
+                {selectedFile && (
+                  <p className="file-name">
+                    {selectedFile.name}
+                  </p>
+                )}
+              </div>
+                </>
+              )}
+              {/* HIDDEN: Final Score Button Section */}
+              {false && (
+                <div className="action-column">
+                  {/* Final score content here */}
+                </div>
+              )}
+            </div>
+
+              {/* Right side: Save action */}
+              <div className="right-actions">
+                <div className="action-column">
+                  <button
+                    onClick={handleSaveGame}
+                    disabled={!hasScoreInput || isSaving || !games[0]?.gameComplete}
+                    className={`action-button ${
+                      hasScoreInput && !isSaving && games[0]?.gameComplete 
+                        ? 'primary-action' 
+                        : 'disabled-action'
+                    }`}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Game'
+                    )}
+                  </button>
+                </div>
+              </div>
+          </div>
+
+          {/* Pin Selector - MOVED INSIDE content-wrapper */}
           {isEditMode && games && games.length > 0 && (
             <div className="pin-selector-section">
               <PinButtons
@@ -995,210 +1075,8 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
                 editingBall={games[0].editingBall}
                 gameComplete={games[0].gameComplete || false}
               />
-              
-              {/* Cancel Edit Button */}
-              {/*<button
-                onClick={() => {
-                  cancelEdit();
-                  setIsEditMode(false);
-                }}
-                className="cancel-edit-button"
-              >
-                ✕ Cancel Edit
-              </button>*/}
             </div>
           )}
-
-          {/* Main Action Buttons - 4-button layout */}
-          <div className="actions-grid">
-            {/* Column 1: Manual Input Score */}
-            <div className="action-column">
-              <button
-                onClick={handleManualScoreInput}
-                className={`action-button ${isEditMode ? 'active-edit' : 'primary-action'}`}
-              >
-                {isEditMode ? '✓ Done Editing' : 'Manually Input Score'}
-              </button>
-            </div>
-
-            {/* Column 2: Upload Score Photo */}
-            <div className="action-column">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="file-input"
-                id="photo-upload"
-              />
-              <label
-                htmlFor="photo-upload"
-                className="action-button primary-action"
-              >
-                Upload Score Photo
-              </label>
-
-              {/* Final Score Button */}
-              {/*<button
-                onClick={() => setEditingFinalScore(editingFinalScore === games[0].id ? null : games[0].id)}
-                className="action-button primary-action"
-                style={{
-                  marginTop: '12px',
-                  background: editingFinalScore === games[0].id
-                    ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
-                    : undefined
-                }}
-              >
-                {editingFinalScore === games[0].id ? '✓ Done' : '# Score'}
-              </button>
-
-              {/* Final Score Input Panel */}
-              {editingFinalScore === games[0].id && (
-                <div style={{
-                  marginTop: '16px',
-                  padding: '16px',
-                  background: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}>
-                  <h4 style={{
-                    color: 'white',
-                    fontSize: '1rem',
-                    marginBottom: '12px',
-                    fontWeight: 600
-                  }}>
-                    Enter Final Score for Game 1
-                  </h4>
-
-                  <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'center'
-                  }}>
-                    <input
-                      type="number"
-                      min="0"
-                      max="300"
-                      placeholder="Enter score (0-300)"
-                      value={finalScores[games[0].id] || ''}
-                      onChange={(e) => setFinalScores(prev => ({ ...prev, [games[0].id]: e.target.value }))}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        color: 'white',
-                        fontSize: '0.875rem',
-                        fontFamily: "'Comfortaa'"
-                      }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleFinalScoreSubmit(games[0].id);
-                        }
-                      }}
-                    />
-
-                    <button
-                      onClick={() => handleFinalScoreSubmit(games[0].id)}
-                      className="action-button primary-action"
-                      style={{ whiteSpace: 'nowrap' }}
-                    >
-                      Set Score
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setEditingFinalScore(null);
-                        setFinalScores(prev => ({ ...prev, [games[0].id]: '' }));
-                      }}
-                      className="action-button"
-                      style={{ background: 'rgba(108, 117, 125, 0.8)' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  <p style={{
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    fontSize: '0.75rem',
-                    marginTop: '8px',
-                    marginBottom: 0
-                  }}>
-                    This will set the total score without frame-by-frame details.
-                  </p>
-                </div>
-              )}
-
-              {/* Mock Data Button - Only for specific user */}
-              {shouldShowMockButton && (
-                <button 
-                  onClick={() => {
-                    console.log('Test button clicked - simulating scorecard upload');
-                    const mockScores = [
-                      { frameNumber: 1, ball1: 7, ball2: 3, ball3: null },
-                      { frameNumber: 2, ball1: 10, ball2: null, ball3: null },
-                      { frameNumber: 3, ball1: 8, ball2: 1, ball3: null },
-                      { frameNumber: 4, ball1: 6, ball2: 4, ball3: null },
-                      { frameNumber: 5, ball1: 10, ball2: null, ball3: null },
-                      { frameNumber: 6, ball1: 9, ball2: 0, ball3: null },
-                      { frameNumber: 7, ball1: 8, ball2: 2, ball3: null },
-                      { frameNumber: 8, ball1: 7, ball2: 2, ball3: null },
-                      { frameNumber: 9, ball1: 10, ball2: null, ball3: null },
-                      { frameNumber: 10, ball1: 9, ball2: 1, ball3: 7 }
-                    ];
-                    handleScoresDetected(mockScores);
-                  }}
-                  className="mock-button"
-                >
-                  🧪 Test Mock Data
-                </button>
-              )}
-            </div>
-
-            {/* Column 3: Analyze (only shows when file selected) */}
-            <div className="action-column">
-              {selectedFile && (
-                <button
-                  onClick={processImage}
-                  disabled={isProcessing}
-                  className="action-button primary-action"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Analyze Scorecard'
-                  )}
-                </button>
-              )}
-
-              {selectedFile && (
-                <p className="file-name">
-                  {selectedFile.name}
-                </p>
-              )}
-            </div>
-
-            {/* Column 4: Save Game */}
-            <div className="action-column">
-              <button
-                onClick={handleSaveGame}
-                disabled={!hasScoreInput || isSaving}
-                className={`action-button ${hasScoreInput && !isSaving ? 'primary-action' : 'disabled-action'}`}
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Game'
-                )}
-              </button>
-            </div>
-          </div>
 
           {/* Back Button - Bottom Right */}
           <button
@@ -1209,7 +1087,9 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
             Back
           </button>
         </div>
+        
       </div>
+   {/* <-- content-wrapper ENDS here */}
 
       <style jsx>{`
         .game-entry-container {
@@ -1245,29 +1125,30 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           max-width: 1200px;
           margin: 0 auto;
           padding: 20px;
-          min-height: 100vh;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          justify-content: flex-start;
+          align-items: stretch;
+          gap: 8px;
+          min-height: auto !important;
+          height: auto !important;
         }
 
         .bowling-game-section {
-          background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
-          backdrop-filter: blur(20px);
-          border-radius: 12px;
-          padding: 24px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          margin-top: 80px; /* Account for header height */
+        background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
+        backdrop-filter: blur(20px);
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-top: 80px;
+        margin-bottom: 0 !important; /* Remove any bottom margin */
         }
 
         .pin-selector-section {
-          flex: 1;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          min-height: 400px;
-          position: relative;
+          justify-content: flex-start;
         }
 
         .cancel-edit-button {
@@ -1293,10 +1174,34 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
         }
 
         .actions-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          display: flex; /* Changed from grid to flex for more control */
+          justify-content: space-between; /* Pushes left and right to opposite sides */
+          align-items: flex-start; /* Align both to top */
           gap: 16px;
           margin-bottom: 24px;
+          width: 100%;
+        }
+
+        .left-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          align-items: flex-start; /* Left-align within left side */
+          width: 50%; /* Force exactly half width */
+          max-width: 50%;
+          border: 2px solid blue !important;
+          background: rgba(0, 0, 255, 0.1) !important;
+        }
+
+        .right-actions {
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start; /* Start from top */
+          align-items: flex-end; /* Right-align within right side */
+          width: 50%; /* Force exactly half width */
+          max-width: 50%;
+          border: 2px solid blue !important;
+          background: rgba(0, 0, 255, 0.1) !important;
         }
 
         .action-column {
@@ -1305,7 +1210,27 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           gap: 8px;
         }
 
-        .action-button {
+        /* LEFT BUTTONS - Your existing sizing */
+          .left-actions .action-button {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: left;
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          font-family: 'Comfortaa';
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: none;
+          min-height: 48px;
+          /* UPDATED: Constrain to half-page width */
+          min-width: ${isEditMode ? '120px' : '240px'};
+          max-width: ${isEditMode ? '280px' : '400px'};
+        }
+
+        .right-actions .action-button {
           width: 100%;
           display: flex;
           align-items: center;
@@ -1319,8 +1244,10 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           transition: all 0.3s ease;
           border: none;
           min-height: 48px;
+          /* CONSTRAINED: Fits within right half */
+          min-width: ${isEditMode ? '120px' : '280px'};
+          max-width: ${isEditMode ? '240px' : '320px'};
         }
-
         .primary-action {
           background: linear-gradient(135deg, rgba(87, 40, 74, 0.8) 0%, rgba(190, 114, 170, 0.8) 50%, rgba(114, 170, 190, 0.8) 100%);
           color: white;
@@ -1370,6 +1297,8 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           cursor: pointer;
           transition: all 0.3s ease;
           font-family: 'Comfortaa';
+          min-width: ${isEditMode ? '40px' : '40px'};
+          max-width: ${isEditMode ? '180px' : '400px'};  
         }
 
         .mock-button:hover {
@@ -1410,35 +1339,42 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           background: rgba(108, 117, 125, 1);
           transform: translateY(-2px);
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        
         }
-
         /* Mobile Responsive Design */
         @media (max-width: 768px) {
           .content-wrapper {
-            padding: 8px; /* Reduced padding significantly */
-            margin: 0; /* Remove any margin */
+            padding: 8px;
+            margin: 0;
           }
 
-          .game-box {
-            padding: 12px; /* Reduced padding */
-            margin-top: 60px; /* Reduced margin for mobile */
-            margin-bottom: 16px;
-            border-radius: 8px; /* Smaller border radius */
-            margin-left: -8px; /* Extend to screen edges */
-            margin-right: -8px;
-            max-width: calc(100vw); /* Full viewport width */
-          }
 
           .actions-grid {
-            grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile */
-            gap: 12px;
-            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between; /* Pushes left and right to opposite sides */
+            align-items: flex-start; /* Align both to top */
+            gap: 16px;
+            margin-bottom: 24px;
+            width: 100%;
           }
 
-          .action-button {
+          /* LEFT BUTTONS MOBILE */
+          .left-actions .action-button {
             padding: 10px 12px;
             font-size: 0.8rem;
             min-height: 44px;
+            min-width: ${isEditMode ? '120px' : '120px'};
+            max-width: ${isEditMode ? '160px' : '200px'};
+          }
+
+          /* RIGHT BUTTON (SAVE) MOBILE - Larger than left */
+          .right-actions .action-button {
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            min-height: 44px;
+            /* Mobile: Still larger than left buttons */
+            min-width: ${isEditMode ? '120px' : '120px'};
+            max-width: ${isEditMode ? '200px' : '250px'};
           }
 
           .back-button {
@@ -1447,6 +1383,7 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
             padding: 10px 16px;
             font-size: 0.9rem;
           }
+        }
 
           /* Make final score input more mobile friendly */
           .final-score-panel {
@@ -1464,11 +1401,33 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           }
         }
 
-        @media (max-width: 480px) {
-          .content-wrapper {
-            padding: 4px; /* Even less padding on very small screens */
+      @media (max-width: 480px) {
+          .actions-grid {
+            grid-template-columns: 1fr; /* Single column on very small screens */
+            gap: 8px;
           }
 
+          .left-actions .action-button {
+            padding: 12px;
+            font-size: 0.875rem;
+            max-width: ${isEditMode ? '130px' : '140px'};
+          }
+
+          .right-actions .action-button {
+            padding: 12px;
+            font-size: 0.875rem;
+            /* Small mobile: Still prominent but reasonable */
+            min-width: ${isEditMode ? '140px' : '140px'};
+            max-width: ${isEditMode ? '200px' : '240px'};
+          }
+
+          .back-button {
+            bottom: 12px;
+            right: 12px;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+          }
+        }
           .game-box {
             padding: 8px;
             margin-left: -4px;
@@ -1491,25 +1450,6 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
             right: 12px;
             padding: 8px 12px;
             font-size: 0.8rem;
-          }
-        }
-
-        /* Ensure bowling game frames are responsive */
-        @media (max-width: 768px) {
-          :global(.bowling-game-container) {
-            overflow-x: auto;
-            padding-bottom: 8px;
-          }
-
-          :global(.bowling-frames-container) {
-            min-width: max-content;
-            display: flex;
-            gap: 2px;
-          }
-
-          :global(.bowling-frame) {
-            min-width: 60px; /* Ensure minimum frame width */
-            flex-shrink: 0;
           }
         }
       `}</style>

@@ -132,9 +132,7 @@ const NotFound = () => {
           font-weight: bold;
           color: white;
           margin: 20px 0 10px 0;
-          text-shadow: 
-            2px 2px 4px rgba(0, 0, 0, 0.5),
-            4px 4px 8px rgba(0, 0, 0, 0.3);
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5),4px 4px 8px rgba(0, 0, 0, 0.3);
           font-family: 'Righteous', cursive;
         }
 

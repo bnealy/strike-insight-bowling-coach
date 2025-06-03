@@ -106,7 +106,7 @@ const PinButtons: React.FC<PinButtonsProps> = ({
       // Server-side rendering fallback
       return {
         containerSize: 300,
-        radius: 100,
+        radius: 150,
         centerButtonSize: 60,
         outerButtonWidth: 50,
         outerButtonHeight: 35
@@ -159,77 +159,83 @@ const PinButtons: React.FC<PinButtonsProps> = ({
   };
 
   // Get button styling based on value
-  const getButtonStyle = (value: number, isCenter: boolean, sliceIndex?: number, totalSlices?: number) => {
-    const baseStyle = {
-      position: 'absolute' as const,
-      border: 'none',
-      fontFamily: "'Comfortaa', cursive",
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-    };
-
-    if (isCenter) {
-      return {
-        ...baseStyle,
-        width: `${centerButtonSize}px`,
-        height: `${centerButtonSize}px`,
-        fontSize: `${centerButtonSize * 0.35}px`,
-        borderRadius: '50%',
-        background: value === 10 ? 
-          'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : // Gold for strike
-          'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)', // Green for spare
-        color: 'white',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 10,
-      };
-    } else {
-      // Create pizza slice shape with consistent angle calculation
-      const sliceAngle = 360 / (totalSlices || 1);
-      const bufferAngle = 1; // Small buffer angle in degrees between slices
-      
-      const startAngle = (sliceIndex || 0) * sliceAngle - 90 + bufferAngle; // Start from top with buffer
-      const endAngle = startAngle + sliceAngle - (bufferAngle * 2); // End with buffer
-      
-      // Convert angles to radians
-      const startRad = (startAngle * Math.PI) / 180;
-      const endRad = (endAngle * Math.PI) / 180;
-      
-      // Create multiple points along the arc to form a smooth circular edge
-      const arcPoints = [];
-      const numArcPoints = Math.max(8, Math.ceil(sliceAngle / 10)); // More points for larger slices
-      
-      for (let i = 0; i <= numArcPoints; i++) {
-        const angle = startRad + (endRad - startRad) * (i / numArcPoints);
-        const x = 50 + 50 * Math.cos(angle);
-        const y = 50 + 50 * Math.sin(angle);
-        arcPoints.push(`${x}% ${y}%`);
-      }
-      
-      return {
-        ...baseStyle,
-        width: `${containerSize}px`,
-        height: `${containerSize}px`,
-        fontSize: `${centerButtonSize * 0.25}px`,
-        // Create pizza slice with curved outer edge and translucent buffers
-        clipPath: `polygon(50% 50%, ${arcPoints.join(', ')})`,
-        background: value === 0 ? 
-          'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)' : // Gray for gutter
-          'linear-gradient(135deg, #D3D3D3 0%, #D3D3D3 100%)', // Blue for regular pins
-        color: 'white',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 1,
-      };
-    }
+ // Get button styling based on value
+// Get button styling based on value
+const getButtonStyle = (value: number, isCenter: boolean, sliceIndex?: number, totalSlices?: number) => {
+  const baseStyle = {
+    position: 'absolute' as const,
+    border: 'none',
+    fontFamily: "'Comfortaa', cursive",
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
   };
+
+  if (isCenter) {
+    return {
+      ...baseStyle,
+      width: `${centerButtonSize}px`,
+      height: `${centerButtonSize}px`,
+      fontSize: `${centerButtonSize * 0.35}px`,
+      borderRadius: '50%',
+      background: value === 10 ? 
+        'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : // Gold for strike
+        'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)', // Green for spare
+      color: 'white',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      zIndex: 10,
+    };
+  } else {
+    // IMPROVED: Create pizza slice shape with equal gaps between slices
+    const totalSlicesCount = totalSlices || 1;
+    const sliceAngle = 360 / totalSlicesCount;
+    const gapAngle = 3; // Consistent gap between slices (increased from 1 to 3 degrees)
+    
+    // Calculate actual slice angle minus the gap
+    const actualSliceAngle = sliceAngle - gapAngle;
+    
+    const startAngle = (sliceIndex || 0) * sliceAngle - 90 + (gapAngle / 2); // Start from top with half gap
+    const endAngle = startAngle + actualSliceAngle; // End with consistent slice width
+    
+    // Convert angles to radians
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+    
+    // Create multiple points along the arc to form a smooth circular edge
+    const arcPoints = [];
+    const numArcPoints = Math.max(8, Math.ceil(actualSliceAngle / 10)); // More points for larger slices
+    
+    for (let i = 0; i <= numArcPoints; i++) {
+      const angle = startRad + (endRad - startRad) * (i / numArcPoints);
+      const x = 50 + 50 * Math.cos(angle);
+      const y = 50 + 50 * Math.sin(angle);
+      arcPoints.push(`${x}% ${y}%`);
+    }
+    
+    return {
+      ...baseStyle,
+      width: `${containerSize}px`,
+      height: `${containerSize}px`,
+      fontSize: `${centerButtonSize * 0.25}px`,
+      // Create pizza slice with consistent gaps
+      clipPath: `polygon(50% 50%, ${arcPoints.join(', ')})`,
+      background: value === 0 ? 
+        'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)' : // Gray for gutter
+        'linear-gradient(135deg, #D3D3D3 0%, #D3D3D3 100%)', // Blue for regular pins
+      color: 'white',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      zIndex: 1,
+    };
+  }
+};
 
   const currentFrameDisplay = editingFrame || currentFrame;
   const currentBallDisplay = editingBall !== null ? editingBall : currentBall;
@@ -325,8 +331,8 @@ const PinButtons: React.FC<PinButtonsProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          min-height: 250px;
+          justify-content: top;
+          min-height: 200px;
         }
 
         .pin-circle-container {

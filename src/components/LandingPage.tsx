@@ -103,10 +103,7 @@ const LandingPage: React.FC = () => {
           font-size: 8rem;
           color: white;
           margin-bottom: 40px;
-          text-shadow: 
-            2px 2px 4px rgba(0, 0, 0, 0.3),
-            4px 4px 8px rgba(0, 0, 0, 0.2),
-            6px 6px 12px rgba(0, 0, 0, 0.1);
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3), 4px 4px 8px rgba(0, 0, 0, 0.2), 6px 6px 12px rgba(0, 0, 0, 0.1);
           letter-spacing: -3px;
           font-weight: 400;
           text-transform: lowercase;

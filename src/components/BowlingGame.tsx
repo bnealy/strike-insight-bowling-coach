@@ -1,6 +1,6 @@
 import React from 'react';
 import { Game } from '../types/bowlingTypes';
-import BowlingFrameDisplay from './BowlingFrameDisplay';
+import ResponsiveBowlingFrames from './BowlingFrameDisplay';
 
 interface BowlingGameProps {
   game: Game;
@@ -91,19 +91,13 @@ const BowlingGame: React.FC<BowlingGameProps> = ({
 
           {/* Mobile-responsive frames grid */}
           <div className="bowling-frames-wrapper">
-            <div className="bowling-frames-grid">
-              {game.frames.map((frame, index) => (
-                <BowlingFrameDisplay
-                  key={index}
-                  frame={frame}
-                  frameNumber={index + 1}
-                  isCurrentFrame={isActive && index + 1 === game.currentFrame}
-                  isEditing={isActive && game.editingFrame === index + 1}
-                  handleBallClick={handleBallClick}
-                  frames={game.frames}
-                />
-              ))}
-            </div>
+            <ResponsiveBowlingFrames
+              frames={game.frames}
+              currentFrame={game.currentFrame}
+              editingFrame={game.editingFrame}
+              editingBall={game.editingBall}
+              handleBallClick={handleBallClick}
+            />
           </div>
 
           <div className="text-center text-2xl font-bold text-gray-800 my-4">
