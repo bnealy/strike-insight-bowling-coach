@@ -1189,8 +1189,6 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           align-items: flex-start; /* Left-align within left side */
           width: 50%; /* Force exactly half width */
           max-width: 50%;
-          border: 2px solid blue !important;
-          background: rgba(0, 0, 255, 0.1) !important;
         }
 
         .right-actions {
@@ -1200,8 +1198,6 @@ if (currentGame.editingFrame !== null && currentGame.editingBall !== null && tar
           align-items: flex-end; /* Right-align within right side */
           width: 50%; /* Force exactly half width */
           max-width: 50%;
-          border: 2px solid blue !important;
-          background: rgba(0, 0, 255, 0.1) !important;
         }
 
         .action-column {
